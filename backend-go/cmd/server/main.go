@@ -2,9 +2,9 @@ package main
 
 import (
 	"log"
-	"plantation/backend-go/config"
-	"plantation/backend-go/middleware"
-	"plantation/backend-go/routes"
+	"github.com/Hyperion147/plantation/backend-go/config"
+	"github.com/Hyperion147/plantation/backend-go/middleware"
+	"github.com/Hyperion147/plantation/backend-go/routes"
 
 	"github.com/gin-gonic/gin"
 )

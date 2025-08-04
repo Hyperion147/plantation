@@ -1,12 +1,10 @@
 package models
 
-import (
-	
-)
+import "gorm.io/gorm"
 
 type User struct {
-	ID uint `gorm:"primaryKey"`
-	Email string `gorm:"unique;not null"`
-	Password string `gorm:"not null"`
-	Plant []Plant
+    gorm.Model
+    Email    string  `gorm:"uniqueIndex;not null"`
+    Password string  `gorm:"not null"`
+    Plants   []Plant
 }
