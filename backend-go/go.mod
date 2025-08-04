@@ -1,4 +1,4 @@
-module github.com/Hyperion147/plantation
+module github.com/Hyperion147/plantation/backend-go
 
 go 1.24.4
 
