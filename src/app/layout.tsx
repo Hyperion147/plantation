@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/app/context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import NextTopLoader from 'nextjs-toploader';
+import { Providers } from './providers';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,11 +21,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        <Providers>
         <AuthProvider>
           <NextTopLoader color="#10b981" />
           {children}
           <Toaster position="top-right" />
         </AuthProvider>
+        </Providers>
       </body>
     </html>
   );

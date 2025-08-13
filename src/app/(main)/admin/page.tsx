@@ -8,8 +8,10 @@ import { query } from '@/app/config/db';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Plant } from '@/lib/types';
 
-const AdminMap = dynamic(() => import('@/app/components/map/PlantMap'), {
+// Dynamically import the map component with proper props
+const PlantMap = dynamic(() => import('@/app/components/map/PlantMap'), {
   ssr: false,
   loading: () => <Skeleton className="w-full h-[500px]" />,
 });
@@ -17,6 +19,7 @@ const AdminMap = dynamic(() => import('@/app/components/map/PlantMap'), {
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<any>(null);
+  const [plants, setPlants] = useState<Plant[]>([]); // Add plants state
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,11 +28,19 @@ export default function AdminPage() {
       redirect('/login');
     }
 
-    // In a real app, you would check if the user is an admin here
-    // For simplicity, we'll just proceed
-
     const fetchData = async () => {
       try {
+        // Fetch plants data for the map
+        const plantsRes = await query(`
+          SELECT 
+            id, name, description, image_url,
+            ST_X(location) as lng, 
+            ST_Y(location) as lat,
+            user_name, created_at
+          FROM plants
+        `);
+        setPlants(plantsRes.rows);
+
         // Fetch total stats
         const statsRes = await query(`
           SELECT 
@@ -114,7 +125,7 @@ export default function AdminPage() {
               <CardTitle>All Plant Locations</CardTitle>
             </CardHeader>
             <CardContent>
-              <AdminMap />
+              <PlantMap plants={plants} /> {/* Pass plants data here */}
             </CardContent>
           </Card>
           

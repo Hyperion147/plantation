@@ -5,15 +5,15 @@ import dynamic from 'next/dynamic';
 import { query } from '@/app/config/db';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plant } from '@/lib/types';
 
-// Dynamically import the map component to avoid SSR issues
 const PlantMap = dynamic(() => import('@/app/components/map/PlantMap'), {
   ssr: false,
   loading: () => <Skeleton className="w-full h-[500px]" />,
 });
 
 export default function MapPage() {
-  const [plants, setPlants] = useState<any[]>([]);
+  const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

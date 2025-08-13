@@ -16,12 +16,25 @@ const defaultIcon = L.icon({
   shadowSize: [41, 41],
 });
 
-export default function PlantMap({ plants }: { plants: Plant[] }) {
+interface PlantMapProps {
+  plants: Plant[];
+}
+
+export default function PlantMap({ plants }: PlantMapProps) {
+  if (!plants || plants.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[500px] bg-muted rounded-lg">
+        <p className="text-muted-foreground">No plants to display on the map</p>
+      </div>
+    );
+  }
+
   return (
     <MapContainer
       center={[20, 0]}
       zoom={2}
       style={{ height: '500px', width: '100%', borderRadius: '0.5rem' }}
+      className="z-0"
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

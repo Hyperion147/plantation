@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 
-const pool = new Pool({
+export const pool = new Pool({
   user: 'your_db_user',
   host: 'your_db_host',
   database: 'your_db_name',

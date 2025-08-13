@@ -1,26 +1,28 @@
+// app/components/PlantSearch.tsx
 'use client';
 
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { query } from '@/app/config/db';
+import { Plant } from '@/lib/types';
 
 export default function PlantSearch() {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { data: plants, isLoading } = useQuery(
-    ['plants', searchTerm],
-    async () => {
+  const { data: plants, isLoading } = useQuery({
+    queryKey: ['plants', searchTerm],
+    queryFn: async (): Promise<Plant[]> => {
       if (!searchTerm) return [];
-      const res = await query(
-        'SELECT * FROM plants WHERE name ILIKE $1 OR id::text LIKE $1',
-        [`%${searchTerm}%`]
-      );
-      return res.rows;
+      
+      const response = await fetch(`/api/search?q=${encodeURIComponent(searchTerm)}`);
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return await response.json();
     },
-    { enabled: searchTerm.length > 0 }
-  );
+    enabled: searchTerm.length > 0
+  });
 
   return (
     <div>

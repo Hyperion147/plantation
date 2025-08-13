@@ -1,3 +1,5 @@
+"use client"
+
 import PlantCarousel from '@/app/components/carousel/Carousel';
 import PlantSearch from '@/app/components/search/PlantSearch';
 import { Button } from '@/components/ui/button';
@@ -10,7 +12,6 @@ export default function Home() {
   return (
     <main className="min-h-screen">
       <div className="relative">
-        <PlantCarousel />
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-40 text-white">
           <h1 className="text-5xl font-bold mb-4">Plantation Tracker</h1>
           <p className="text-xl mb-8">Track, Grow, and Celebrate Your Green Journey</p>

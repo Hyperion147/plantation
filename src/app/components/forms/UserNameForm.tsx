@@ -6,9 +6,10 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/context/AuthContext';
-import { query } from '@/config/db';
+import { useAuth } from '@/app/context/AuthContext';
+import { query } from '@/app/config/db';
 import { toast } from 'react-hot-toast';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 const formSchema = z.object({
   name: z.string().min(2, {
