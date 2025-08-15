@@ -1,78 +1,270 @@
 'use client';
 
-import { useAuth } from '@/app/context/AuthContext';
-import { redirect } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import PlantForm from '@/app/components/forms/PlantForm';
-import UserNameForm from '@/app/components/forms/UserNameForm';
-import { useQuery } from '@tanstack/react-query';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MapPin, Upload, Camera } from 'lucide-react';
 
-type PlantFormProps = {
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: 'Plant name must be at least 2 characters.',
+  }),
+  description: z.string().optional(),
+  image: z.instanceof(File).optional(),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+});
+
+interface PlantFormProps {
   userId?: string;
   userName: string;
-};
-
-export function PlantForm({ userId, userName }: PlantFormProps) {
-  // Your component implementation
 }
 
-export default function DashboardPage() {
-  const { user, loading } = useAuth();
-  const [showNameForm, setShowNameForm] = useState(false);
+export default function PlantForm({ userId, userName }: PlantFormProps) {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // Properly typed query with React Query v5 syntax
-  const { data: userName } = useQuery({
-    queryKey: ['userName', user?.uid],
-    queryFn: async (): Promise<string | null> => {
-      if (!user?.uid) return null;
-      
-      const response = await fetch(`/api/user/${user.uid}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch user name');
-      }
-      const data = await response.json();
-      return typeof data === 'string' ? data : null;
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      lat: 0,
+      lng: 0,
     },
-    enabled: !!user?.uid,
-    // React Query v5 callback syntax
-    staleTime: 60 * 1000, // 1 minute
-    select: (data) => data, // Optional transformation
-    gcTime: 5 * 60 * 1000, // 5 minutes cache time
   });
 
-  useEffect(() => {
-    if (userName === null) {
-      setShowNameForm(true);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      form.setValue('image', file);
+      setPreviewImage(URL.createObjectURL(file));
     }
-  }, [userName]);
+  };
 
-  useEffect(() => {
-    if (!loading && !user) {
-      redirect('/login');
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          form.setValue('lat', position.coords.latitude);
+          form.setValue('lng', position.coords.longitude);
+          toast.success('Location captured!');
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          toast.error('Could not get your location. Please enter coordinates manually.');
+        }
+      );
+    } else {
+      toast.error('Geolocation is not supported by this browser.');
     }
-  }, [user, loading]);
+  };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!userId) {
+      toast.error('You must be logged in to track plants');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('name', values.name);
+      formData.append('description', values.description || '');
+      formData.append('lat', values.lat.toString());
+      formData.append('lng', values.lng.toString());
+      formData.append('userId', userId);
+      formData.append('userName', userName);
+      
+      if (values.image) {
+        formData.append('image', values.image);
+      }
+
+      const response = await fetch('/api/plants', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create plant');
+      }
+
+      const plant = await response.json();
+
+      toast.success('Plant tracked successfully!', {
+        description: `${values.name} has been added to your collection`,
+      });
+
+      // Reset form
+      form.reset();
+      setPreviewImage(null);
+      router.refresh();
+    } catch (error) {
+      console.error('Error creating plant:', error);
+      toast.error('Failed to track plant', {
+        description: 'Please try again later',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Welcome{userName ? `, ${userName}` : ''}</h1>
-      
-      {showNameForm && (
-        <UserNameForm 
-          onSuccess={() => {
-            setShowNameForm(false);
-            // Consider invalidating the query here
-          }} 
-        />
-      )}
-      
-      <div className="mt-8">
-        <h2 className="text-2xl font-semibold mb-4">Track a New Plant</h2>
-        <PlantForm userId={user?.uid} userName={userName} />
-      </div>
-    </div>
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="text-xl sm:text-2xl">Track a New Plant</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Plant Name */}
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Plant Name *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Monstera Deliciosa" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Image Upload */}
+            <div className="space-y-4">
+              <FormLabel>Plant Image</FormLabel>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Upload a photo of your plant
+                  </p>
+                </div>
+                {previewImage && (
+                  <div className="flex justify-center">
+                    <img
+                      src={previewImage}
+                      alt="Plant preview"
+                      className="w-32 h-32 object-cover rounded-md border"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Description */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Describe your plant (species, care tips, etc.)"
+                      className="resize-none min-h-[100px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Location Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-muted-foreground" />
+                <FormLabel>Location</FormLabel>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="lat"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">Latitude</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="any" 
+                          placeholder="40.7128" 
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="lng"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">Longitude</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="any" 
+                          placeholder="-74.0060" 
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={getCurrentLocation}
+                className="w-full sm:w-auto"
+              >
+                <Camera className="w-4 h-4 mr-2" />
+                Get My Location
+              </Button>
+            </div>
+
+            {/* Submit Button */}
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin">↻</span>
+                  Tracking Plant...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Upload className="w-4 h-4" />
+                  Track This Plant
+                </span>
+              )}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 }

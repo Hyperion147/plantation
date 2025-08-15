@@ -6,80 +6,90 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
+import { useState } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
-import { query } from '@/app/config/db';
-import { toast } from 'react-hot-toast';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 const formSchema = z.object({
-  name: z.string().min(2, {
+  display_name: z.string().min(2, {
     message: 'Name must be at least 2 characters.',
   }),
 });
 
-export default function UserNameForm({ onSuccess }: { onSuccess: (name: string) => void }) {
+interface UserNameFormProps {
+  onSuccess: (name: string) => void;
+}
+
+export default function UserNameForm({ onSuccess }: UserNameFormProps) {
   const { user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: '',
+      display_name: user?.displayName || '',
     },
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!user) return;
+    if (!user?.uid) {
+      toast.error('You must be logged in');
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
-      // Check if user already exists
-      const userCheck = await query('SELECT * FROM users WHERE uid = $1', [user.uid]);
-      
-      if (userCheck.rows.length > 0) {
-        // Update existing user
-        await query('UPDATE users SET name = $1 WHERE uid = $2', [values.name, user.uid]);
-      } else {
-        // Create new user
-        await query(
-          'INSERT INTO users (uid, email, name) VALUES ($1, $2, $3)',
-          [user.uid, user.email, values.name]
-        );
+      const response = await fetch(`/api/user/${user.uid}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          display_name: values.display_name,
+          photo_url: user.photoURL,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update user');
       }
 
-      toast.success('Name saved successfully!');
-      onSuccess(values.name);
+      toast.success('Name updated successfully!');
+      onSuccess(values.display_name);
     } catch (error) {
-      console.error('Error saving user name:', error);
-      toast.error('Failed to save name. Please try again.');
+      console.error('Error updating user:', error);
+      toast.error('Failed to update name', {
+        description: 'Please try again later',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Tell Us Your Name</CardTitle>
-        <CardDescription>
-          We'd like to personalize your experience by knowing your name.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Your Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter your name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit">Save</Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+    <div className="bg-muted p-6 rounded-lg mb-6">
+      <h3 className="text-lg font-semibold mb-4">Welcome! Please set your display name</h3>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="display_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Display Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter your name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Save Name'}
+          </Button>
+        </form>
+      </Form>
+    </div>
   );
 }

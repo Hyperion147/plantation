@@ -7,9 +7,9 @@ import { Plant } from '@/lib/types';
 
 // Fix for default marker icons in Next.js
 const defaultIcon = L.icon({
-  iconUrl: '/images/marker-icon.png',
-  iconRetinaUrl: '/images/marker-icon-2x.png',
-  shadowUrl: '/images/marker-shadow.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
@@ -29,10 +29,15 @@ export default function PlantMap({ plants }: PlantMapProps) {
     );
   }
 
+  // Calculate center based on plants or use default
+  const center = plants.length > 0 
+    ? [plants[0].lat, plants[0].lng] 
+    : [20, 0];
+
   return (
     <MapContainer
-      center={[20, 0]}
-      zoom={2}
+      center={center as [number, number]}
+      zoom={plants.length === 1 ? 10 : 2}
       style={{ height: '500px', width: '100%', borderRadius: '0.5rem' }}
       className="z-0"
     >
@@ -55,11 +60,19 @@ export default function PlantMap({ plants }: PlantMapProps) {
                   src={plant.image_url} 
                   alt={plant.name} 
                   className="w-full h-32 object-cover rounded"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               )}
-              <p className="text-sm">{plant.description}</p>
+              {plant.description && (
+                <p className="text-sm">{plant.description}</p>
+              )}
               <p className="text-xs text-muted-foreground">
                 Tracked by {plant.user_name}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(plant.created_at).toLocaleDateString()}
               </p>
             </div>
           </Popup>

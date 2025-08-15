@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup": "node scripts/setup.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -22,6 +23,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "firebase": "^12.1.0",
+    "firebase-admin": "^12.0.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.539.0",
     "motion": "^12.23.12",

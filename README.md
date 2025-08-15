@@ -1,36 +1,139 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Plantation Tracker
 
-## Getting Started
+A Next.js web application that allows users to track and manage their plants with an interactive map, leaderboard, and community features.
 
-First, run the development server:
+## Features
+
+- 🌱 **Plant Tracking**: Add plants with names, descriptions, images, and GPS coordinates
+- 🗺️ **Interactive Map**: View all tracked plants on an interactive map using Leaflet
+- 🏆 **Leaderboard**: See top users based on the number of plants they've tracked
+- 🔍 **Search**: Search through plants by name or ID
+- 🔐 **Authentication**: Google OAuth login system using Firebase
+- 📊 **Admin Dashboard**: View statistics and analytics about the platform
+- 📱 **Responsive Design**: Works on desktop and mobile devices
+
+## Tech Stack
+
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Styling**: Tailwind CSS, Radix UI components
+- **Authentication**: Firebase Auth
+- **Database**: PostgreSQL with PostGIS extension
+- **Maps**: Leaflet with React-Leaflet
+- **Charts**: Recharts
+- **Forms**: React Hook Form with Zod validation
+- **State Management**: TanStack Query
+
+## Prerequisites
+
+- Node.js 18+ 
+- PostgreSQL 12+ with PostGIS extension
+- Firebase project
+
+## Setup Instructions
+
+### 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd plantation
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Set up environment variables
+
+Create a `.env.local` file in the root directory:
+
+```env
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key_here
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id_here
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
+
+# Firebase Admin (for server-side operations)
+FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_CLIENT_EMAIL=your_service_account_email
+FIREBASE_PRIVATE_KEY=your_private_key
+
+# Database Configuration
+DATABASE_URL=postgresql://username:password@localhost:5432/plantation_db
+DB_USER=your_db_user
+DB_HOST=localhost
+DB_NAME=plantation_db
+DB_PASSWORD=your_db_password
+DB_PORT=5432
+```
+
+### 4. Set up the database
+
+1. Create a PostgreSQL database
+2. Enable the PostGIS extension:
+   ```sql
+   CREATE EXTENSION postgis;
+   ```
+3. Run the schema file:
+   ```bash
+   psql -d plantation_db -f database/schema.sql
+   ```
+
+### 5. Configure Firebase
+
+1. Create a Firebase project
+2. Enable Google Authentication
+3. Enable Firebase Storage
+4. Create a service account and download the credentials
+5. Add the credentials to your environment variables
+
+### 6. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/
+│   ├── (auth)/          # Authentication pages
+│   ├── (main)/          # Main application pages
+│   ├── api/             # API routes
+│   ├── components/      # Reusable components
+│   ├── config/          # Configuration files
+│   └── context/         # React contexts
+├── components/          # UI components
+└── lib/                 # Utility functions and types
+```
 
-## Learn More
+## API Endpoints
 
-To learn more about Next.js, take a look at the following resources:
+- `GET /api/plants` - Get all plants (with optional search and user filtering)
+- `POST /api/plants` - Create a new plant
+- `GET /api/user/[uuid]` - Get user data
+- `PUT /api/user/[uuid]` - Update user data
+- `GET /api/leaderboard` - Get leaderboard data
+- `GET /api/admin/stats` - Get admin statistics
+- `GET /api/admin/chart` - Get chart data
+- `GET /api/search` - Search plants
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Contributing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the MIT License.
