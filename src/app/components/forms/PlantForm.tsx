@@ -11,7 +11,16 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Upload, Camera } from 'lucide-react';
+import { MapPin, Upload, Camera, AlertCircle } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+
+// Panipat area bounds
+const PANIPAT_BOUNDS = {
+  minLat: 29.2,
+  maxLat: 29.6,
+  minLng: 76.7,
+  maxLng: 77.2,
+};
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -19,8 +28,12 @@ const formSchema = z.object({
   }),
   description: z.string().optional(),
   image: z.instanceof(File).optional(),
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
+  lat: z.number()
+    .min(PANIPAT_BOUNDS.minLat, { message: `Latitude must be at least ${PANIPAT_BOUNDS.minLat} (Panipat area)` })
+    .max(PANIPAT_BOUNDS.maxLat, { message: `Latitude must be at most ${PANIPAT_BOUNDS.maxLat} (Panipat area)` }),
+  lng: z.number()
+    .min(PANIPAT_BOUNDS.minLng, { message: `Longitude must be at least ${PANIPAT_BOUNDS.minLng} (Panipat area)` })
+    .max(PANIPAT_BOUNDS.maxLng, { message: `Longitude must be at most ${PANIPAT_BOUNDS.maxLng} (Panipat area)` }),
 });
 
 interface PlantFormProps {
@@ -30,6 +43,7 @@ interface PlantFormProps {
 
 export default function PlantForm({ userId, userName }: PlantFormProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -38,8 +52,8 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
     defaultValues: {
       name: '',
       description: '',
-      lat: 0,
-      lng: 0,
+      lat: 29.3909, // Panipat center latitude
+      lng: 76.9635, // Panipat center longitude
     },
   });
 
@@ -55,13 +69,27 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          form.setValue('lat', position.coords.latitude);
-          form.setValue('lng', position.coords.longitude);
-          toast.success('Location captured!');
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          // Check if location is within Panipat bounds
+          if (
+            lat >= PANIPAT_BOUNDS.minLat && lat <= PANIPAT_BOUNDS.maxLat &&
+            lng >= PANIPAT_BOUNDS.minLng && lng <= PANIPAT_BOUNDS.maxLng
+          ) {
+            form.setValue('lat', lat);
+            form.setValue('lng', lng);
+            toast.success('Location captured! You are in Panipat area.');
+          } else {
+            toast.error('Location is outside Panipat area. Please use coordinates within Panipat, Haryana.');
+            // Set to Panipat center instead
+            form.setValue('lat', 29.3909);
+            form.setValue('lng', 76.9635);
+          }
         },
         (error) => {
           console.error('Error getting location:', error);
-          toast.error('Could not get your location. Please enter coordinates manually.');
+          toast.error('Could not get your location. Please enter Panipat coordinates manually.');
         }
       );
     } else {
@@ -72,6 +100,15 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!userId) {
       toast.error('You must be logged in to track plants');
+      return;
+    }
+
+    // Double-check bounds validation
+    if (
+      values.lat < PANIPAT_BOUNDS.minLat || values.lat > PANIPAT_BOUNDS.maxLat ||
+      values.lng < PANIPAT_BOUNDS.minLng || values.lng > PANIPAT_BOUNDS.maxLng
+    ) {
+      toast.error('Plant location must be within Panipat, Haryana area');
       return;
     }
 
@@ -102,12 +139,23 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
       const plant = await response.json();
 
       toast.success('Plant tracked successfully!', {
-        description: `${values.name} has been added to your collection`,
+        description: `${values.name} has been added to your Panipat collection`,
       });
 
       // Reset form
-      form.reset();
+      form.reset({
+        name: '',
+        description: '',
+        lat: 29.3909,
+        lng: 76.9635,
+      });
       setPreviewImage(null);
+      
+      // Invalidate and refetch queries
+      await queryClient.invalidateQueries({ queryKey: ['userPlants'] });
+      await queryClient.invalidateQueries({ queryKey: ['plants'] });
+      
+      // Refresh the page to update all components
       router.refresh();
     } catch (error) {
       console.error('Error creating plant:', error);
@@ -122,7 +170,11 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="text-xl sm:text-2xl">Track a New Plant</CardTitle>
+        <CardTitle className="text-xl sm:text-2xl">Track a New Plant in Panipat</CardTitle>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <AlertCircle className="h-4 w-4" />
+          <span>Plants can only be tracked within Panipat, Haryana area</span>
+        </div>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -192,7 +244,15 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-muted-foreground" />
-                <FormLabel>Location</FormLabel>
+                <FormLabel>Location (Panipat Area Only)</FormLabel>
+              </div>
+              
+              <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                <p className="text-sm text-emerald-800 mb-3">
+                  <strong>Panipat Area Bounds:</strong><br />
+                  Latitude: {PANIPAT_BOUNDS.minLat}° to {PANIPAT_BOUNDS.maxLat}°<br />
+                  Longitude: {PANIPAT_BOUNDS.minLng}° to {PANIPAT_BOUNDS.maxLng}°
+                </p>
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -206,9 +266,9 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
                         <Input 
                           type="number" 
                           step="any" 
-                          placeholder="40.7128" 
+                          placeholder="29.3909" 
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 29.3909)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -226,9 +286,9 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
                         <Input 
                           type="number" 
                           step="any" 
-                          placeholder="-74.0060" 
+                          placeholder="76.9635" 
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 76.9635)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -244,7 +304,7 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
                 className="w-full sm:w-auto"
               >
                 <Camera className="w-4 h-4 mr-2" />
-                Get My Location
+                Get My Location (Panipat Only)
               </Button>
             </div>
 
@@ -253,12 +313,12 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <span className="animate-spin">↻</span>
-                  Tracking Plant...
+                  Tracking Plant in Panipat...
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Upload className="w-4 h-4" />
-                  Track This Plant
+                  Track This Plant in Panipat
                 </span>
               )}
             </Button>

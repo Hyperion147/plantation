@@ -43,11 +43,13 @@ export default function LoginPage() {
               Sign in to start tracking your plants
             </p>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             <div className="space-y-4">
-              <GoogleLoginButton />
-              
+              <div className='flex justify-center'>
+                <GoogleLoginButton />
+              </div>
+
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
@@ -58,7 +60,7 @@ export default function LoginPage() {
                   </span>
                 </div>
               </div>
-              
+
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-4">
                   Don't have an account? No problem!
@@ -68,7 +70,7 @@ export default function LoginPage() {
                 </p>
               </div>
             </div>
-            
+
             {/* Features Preview */}
             <div className="pt-6 border-t">
               <h3 className="font-semibold text-sm mb-3 text-gray-900">
@@ -93,11 +95,11 @@ export default function LoginPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Explore Link */}
             <div className="pt-4 text-center">
-              <Link 
-                href="/map" 
+              <Link
+                href="/map"
                 className="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 transition-colors"
               >
                 <span>Explore the map first</span>
@@ -106,7 +108,7 @@ export default function LoginPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         {/* Footer */}
         <div className="text-center mt-6">
           <p className="text-xs text-muted-foreground">

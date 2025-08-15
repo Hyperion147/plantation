@@ -8,15 +8,16 @@ export type User = {
 
 // Plant type
 export type Plant = {
-  id: number;
+  id: string | number;
   name: string;
   description?: string;
-  image_url: string;
+  image_url?: string | null;
   lat: number;
   lng: number;
   user_id: string;
   user_name: string;
-  created_at: Date;
+  created_at: string | Date;
+  updated_at?: string | Date;
 };
 
 // For forms

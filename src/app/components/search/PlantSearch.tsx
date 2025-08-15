@@ -1,16 +1,18 @@
 // app/components/PlantSearch.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/app/components/ui/skeleton';
-import { Search, User, Calendar, MapPin } from 'lucide-react';
+import { Search, User, Calendar, MapPin, X, Loader2 } from 'lucide-react';
 import { Plant } from '@/lib/types';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
-// Debounce hook
+// Debounce hook with improved implementation
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
@@ -29,44 +31,89 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function PlantSearch() {
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 300); // 300ms delay
+  const [isTyping, setIsTyping] = useState(false);
+  const debouncedSearchTerm = useDebounce(searchTerm, 500); // Increased to 500ms for better UX
 
-  const { data: plants, isLoading } = useQuery({
-    queryKey: ['plants', debouncedSearchTerm],
+  // Track if user is currently typing
+  useEffect(() => {
+    setIsTyping(searchTerm !== debouncedSearchTerm);
+  }, [searchTerm, debouncedSearchTerm]);
+
+  const { data: plants, isLoading, error } = useQuery({
+    queryKey: ['search', debouncedSearchTerm],
     queryFn: async (): Promise<Plant[]> => {
-      if (!debouncedSearchTerm) return [];
-      const response = await fetch(`/api/search?q=${encodeURIComponent(debouncedSearchTerm)}`);
+      if (!debouncedSearchTerm.trim()) return [];
+      
+      const response = await fetch(`/api/search?q=${encodeURIComponent(debouncedSearchTerm.trim())}`);
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error('Failed to search plants');
       }
       return await response.json();
     },
-    enabled: debouncedSearchTerm.length > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: debouncedSearchTerm.trim().length > 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 2,
   });
+
+  // Handle search errors
+  useEffect(() => {
+    if (error) {
+      console.error('Search error:', error);
+      toast.error('Failed to search plants. Please try again.');
+    }
+  }, [error]);
 
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   }, []);
+
+  const clearSearch = useCallback(() => {
+    setSearchTerm('');
+  }, []);
+
+  // Memoize search results to prevent unnecessary re-renders
+  const searchResults = useMemo(() => {
+    if (!plants) return [];
+    return plants;
+  }, [plants]);
+
+  const showLoading = isLoading || isTyping;
+  const hasResults = searchResults && searchResults.length > 0;
+  const hasSearched = debouncedSearchTerm.trim().length > 0;
 
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search plants by name or ID..."
-          className="pl-10 pr-4 h-12 text-base"
+          placeholder="Search plants by name, description, or user..."
+          className="pl-10 pr-12 h-12 text-base"
           value={searchTerm}
           onChange={handleSearchChange}
         />
-        {searchTerm && !debouncedSearchTerm && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600"></div>
+        
+        {/* Clear button */}
+        {searchTerm && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+            onClick={clearSearch}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+        
+        {/* Loading indicator */}
+        {showLoading && (
+          <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+            <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
           </div>
         )}
       </div>
 
-      {isLoading && debouncedSearchTerm && (
+      {/* Loading skeleton */}
+      {showLoading && (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <Card key={i}>
@@ -85,20 +132,21 @@ export default function PlantSearch() {
         </div>
       )}
 
-      {plants && plants.length > 0 && (
+      {/* Search results */}
+      {!showLoading && hasResults && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Found {plants.length} plant{plants.length !== 1 ? 's' : ''}
+              Found {searchResults.length} plant{searchResults.length !== 1 ? 's' : ''} for "{debouncedSearchTerm}"
             </p>
             <Link href="/map">
-              <button className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+              <Button variant="outline" size="sm">
                 View All on Map
-              </button>
+              </Button>
             </Link>
           </div>
 
-          {plants.map((plant) => (
+          {searchResults.map((plant) => (
             <Card key={plant.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-start space-x-4">
@@ -107,12 +155,15 @@ export default function PlantSearch() {
                       src={plant.image_url}
                       alt={plant.name}
                       className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-md flex-shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
                     />
-                  ) : (
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 rounded-md flex items-center justify-center flex-shrink-0">
-                      <MapPin className="h-8 w-8 text-emerald-600" />
-                    </div>
-                  )}
+                  ) : null}
+                  <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 rounded-md flex items-center justify-center flex-shrink-0 ${plant.image_url ? 'hidden' : ''}`}>
+                    <MapPin className="h-8 w-8 text-emerald-600" />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
@@ -155,7 +206,8 @@ export default function PlantSearch() {
         </div>
       )}
 
-      {plants && plants.length === 0 && debouncedSearchTerm && (
+      {/* No results */}
+      {!showLoading && hasSearched && !hasResults && (
         <Card>
           <CardContent className="p-8 text-center">
             <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center mb-4">
@@ -163,29 +215,30 @@ export default function PlantSearch() {
             </div>
             <h3 className="font-semibold mb-2">No plants found</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Try searching with different keywords or browse all plants on the map
+              No plants found for "{debouncedSearchTerm}". Try searching with different keywords.
             </p>
-            <Link href="/map">
-              <button className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-                Browse All Plants
-              </button>
-            </Link>
-          </CardContent>
-        </Card>
-      )}
-
-      {!searchTerm && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-              <Search className="h-8 w-8 text-emerald-600" />
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Try searching for:</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {['Monstera', 'Fiddle Leaf', 'Snake Plant', 'Pothos', 'ZZ Plant'].map((suggestion) => (
+                  <Button
+                    key={suggestion}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSearchTerm(suggestion)}
+                    className="text-xs"
+                  >
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
             </div>
-            <h3 className="font-semibold mb-2">Search Plants</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Enter a plant name or ID to search through our community's collection
-            </p>
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>Try searching for: "Monstera", "Fiddle Leaf", "Succulent"</p>
+            <div className="mt-4">
+              <Link href="/map">
+                <Button variant="outline" size="sm">
+                  Browse All Plants
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

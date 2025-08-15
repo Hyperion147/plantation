@@ -1,103 +1,67 @@
 // app/api/plants/route.ts
-import { pool } from '@/app/config/db';
 import { NextResponse } from 'next/server';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '@/app/config/firebase';
+import { storage, database } from '@/app/config/firebase';
+import { ref as dbRef, push, get, query, orderByChild, equalTo, startAt, endAt } from 'firebase/database';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q');
+    const queryParam = searchParams.get('q');
     const userId = searchParams.get('userId');
 
-    // Temporary mock data until database is set up
-    const mockPlants = [
-      {
-        id: 1,
-        name: 'Monstera Deliciosa',
-        description: 'A beautiful Swiss cheese plant',
-        image_url: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=400',
-        lat: 40.7128,
-        lng: -74.0060,
-        user_id: 'mock-user-id',
-        user_name: 'Test User',
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: 2,
-        name: 'Fiddle Leaf Fig',
-        description: 'Popular indoor tree plant',
-        image_url: 'https://images.unsplash.com/photo-1593691509543-c55fb32e5cee?w=400',
-        lat: 34.0522,
-        lng: -118.2437,
-        user_id: 'mock-user-id',
-        user_name: 'Test User',
-        created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-      },
-      {
-        id: 3,
-        name: 'Snake Plant',
-        description: 'Low maintenance air purifier',
-        image_url: 'https://images.unsplash.com/photo-1593691509543-c55fb32e5cee?w=400',
-        lat: 41.8781,
-        lng: -87.6298,
-        user_id: 'mock-user-id',
-        user_name: 'Test User',
-        created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-      },
-    ];
+    const plantsRef = dbRef(database, 'plants');
+    let plantsQuery;
 
-    // Filter by userId if provided
     if (userId) {
-      return NextResponse.json(mockPlants.filter(plant => plant.user_id === 'mock-user-id'));
+      // Filter by userId
+      plantsQuery = query(plantsRef, orderByChild('user_id'), equalTo(userId));
+    } else if (queryParam) {
+      // Search functionality - Firebase doesn't support full-text search
+      // We'll implement a simple name-based search
+      plantsQuery = query(plantsRef, orderByChild('name'), startAt(queryParam), endAt(queryParam + '\uf8ff'));
+    } else {
+      // Get all plants
+      plantsQuery = query(plantsRef, orderByChild('created_at'));
     }
 
-    // Filter by query if provided
-    if (query) {
-      const filteredPlants = mockPlants.filter(plant => 
-        plant.name.toLowerCase().includes(query.toLowerCase()) ||
-        plant.id.toString().includes(query)
-      );
-      return NextResponse.json(filteredPlants);
+    const snapshot = await get(plantsQuery);
+    const plants: any[] = [];
+
+    if (snapshot.exists()) {
+      snapshot.forEach((childSnapshot) => {
+        const plant = childSnapshot.val();
+        plants.push({
+          id: childSnapshot.key,
+          ...plant,
+        });
+      });
     }
 
-    return NextResponse.json(mockPlants);
-    
-    // Uncomment this when database is ready:
-    /*
-    const client = await pool.connect();
-    
-    let query = `
-      SELECT 
-        p.id, p.name, p.description, p.image_url,
-        ST_X(p.location) as lng, ST_Y(p.location) as lat,
-        p.user_id, p.user_name, p.created_at
-      FROM plants p
-    `;
-    
-    const params: any[] = [];
-    let paramCount = 0;
-    
-    if (searchParams.get('userId')) {
-      paramCount++;
-      query += ` WHERE p.user_id = $${paramCount}`;
-      params.push(searchParams.get('userId'));
+    // If searching and no results found by name, try description search
+    if (queryParam && plants.length === 0) {
+      const allPlantsSnapshot = await get(plantsRef);
+      if (allPlantsSnapshot.exists()) {
+        allPlantsSnapshot.forEach((childSnapshot) => {
+          const plant = childSnapshot.val();
+          if (
+            plant.description?.toLowerCase().includes(queryParam.toLowerCase()) ||
+            plant.user_name?.toLowerCase().includes(queryParam.toLowerCase()) ||
+            childSnapshot.key?.includes(queryParam)
+          ) {
+            plants.push({
+              id: childSnapshot.key,
+              ...plant,
+            });
+          }
+        });
+      }
     }
-    
-    if (searchParams.get('q')) {
-      paramCount++;
-      const whereClause = paramCount === 1 ? ' WHERE' : ' AND';
-      query += `${whereClause} (p.name ILIKE $${paramCount} OR p.id::text LIKE $${paramCount})`;
-      params.push(`%${searchParams.get('q')}%`);
-    }
-    
-    query += ' ORDER BY p.created_at DESC';
-    
-    const res = await client.query(query, params);
-    client.release();
-    
-    return NextResponse.json(res.rows);
-    */
+
+    // Sort by creation date (newest first)
+    plants.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    return NextResponse.json(plants);
   } catch (error) {
     console.error('Error fetching plants:', error);
     return NextResponse.json(
@@ -125,65 +89,44 @@ export async function POST(request: Request) {
       );
     }
 
-    // Temporary mock response
-    const mockPlant = {
-      id: Math.floor(Math.random() * 1000) + 3,
+    // Upload image if provided
+    let imageUrl = null;
+    if (image) {
+      try {
+        const bytes = await image.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const imageRef = ref(storage, `plants/${Date.now()}_${image.name}`);
+        await uploadBytes(imageRef, buffer);
+        imageUrl = await getDownloadURL(imageRef);
+      } catch (uploadError) {
+        console.error('Error uploading image:', uploadError);
+        // Continue without image if upload fails
+      }
+    }
+
+    // Create plant data
+    const plantData = {
       name,
       description: description || '',
-      image_url: image ? 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=400' : null,
+      image_url: imageUrl,
       lat,
       lng,
       user_id: userId,
       user_name: userName,
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
-    return NextResponse.json(mockPlant);
+    // Save to Firebase Realtime Database
+    const plantsRef = dbRef(database, 'plants');
+    const newPlantRef = push(plantsRef, plantData);
     
-    // Uncomment this when database is ready:
-    /*
-    const client = await pool.connect();
+    const newPlant = {
+      id: newPlantRef.key,
+      ...plantData,
+    };
 
-    // Check if user exists, if not create them
-    let userRes = await client.query(
-      'SELECT id FROM users WHERE firebase_uid = $1',
-      [userId]
-    );
-
-    let dbUserId: string;
-    if (userRes.rows.length === 0) {
-      // Create user if doesn't exist
-      const newUserRes = await client.query(
-        'INSERT INTO users (firebase_uid, email, display_name) VALUES ($1, $2, $3) RETURNING id',
-        [userId, `${userId}@example.com`, userName]
-      );
-      dbUserId = newUserRes.rows[0].id;
-    } else {
-      dbUserId = userRes.rows[0].id;
-    }
-
-    // Upload image if provided
-    let imageUrl = null;
-    if (image) {
-      const bytes = await image.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const imageRef = ref(storage, `plants/${Date.now()}_${image.name}`);
-      await uploadBytes(imageRef, buffer);
-      imageUrl = await getDownloadURL(imageRef);
-    }
-
-    // Insert plant with location
-    const plantRes = await client.query(
-      `INSERT INTO plants (name, description, image_url, location, user_id, user_name)
-       VALUES ($1, $2, $3, ST_SetSRID(ST_MakePoint($4, $5), 4326), $6, $7)
-       RETURNING *`,
-      [name, description, imageUrl, lng, lat, dbUserId, userName]
-    );
-
-    client.release();
-
-    return NextResponse.json(plantRes.rows[0]);
-    */
+    return NextResponse.json(newPlant);
   } catch (error) {
     console.error('Error creating plant:', error);
     return NextResponse.json(

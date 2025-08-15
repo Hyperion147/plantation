@@ -10,7 +10,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '@/app/config/firebase';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { LogOut, User, Map, Trophy, BarChart3, Menu, X } from 'lucide-react';
+import { LogOut, User, Map, Trophy, BarChart3, Menu, X, Search } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Navigation() {
@@ -33,6 +33,7 @@ export default function Navigation() {
   const navigationItems = [
     { href: '/dashboard', icon: User, label: 'Dashboard' },
     { href: '/map', icon: Map, label: 'Map' },
+    { href: '/search', icon: Search, label: 'Search' },
     { href: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
     { href: '/admin', icon: BarChart3, label: 'Admin' },
   ];
@@ -57,7 +58,7 @@ export default function Navigation() {
             🌱 <span className="hidden sm:inline ml-1">Plantation Tracker</span>
             <span className="sm:hidden ml-1">PT</span>
           </Link>
-          
+
           {/* Desktop Navigation */}
           {user && (
             <div className="hidden lg:flex items-center space-x-2">
@@ -110,12 +111,12 @@ export default function Navigation() {
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                                 <SheetContent 
-                   side="right" 
-                   className="w-[280px] sm:w-[350px]"
-                   title="Navigation Menu"
-                   description="Mobile navigation menu with user options and page links"
-                 >
+                <SheetContent
+                  side="right"
+                  className="w-[280px] sm:w-[350px]"
+                  title="Navigation Menu"
+                  description="Mobile navigation menu with user options and page links"
+                >
                   <div className="flex flex-col h-full">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-lg font-semibold">Menu</h2>

@@ -15,12 +15,12 @@ export default function Carousel() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % images.length);
-    }, 5000);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="relative h-[70vh] w-full overflow-hidden">
+    <div className="relative h-[30vh] w-full overflow-hidden">
       {images.map((image, index) => (
         <motion.div
           key={index}
