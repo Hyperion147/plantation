@@ -85,10 +85,10 @@ export default function LoginPage() {
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
                   <span>View plants on interactive map</span>
                 </div>
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
                   <span>Join the community leaderboard</span>
-                </div>
+                </div> */}
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
                   <span>Search and discover plants</span>

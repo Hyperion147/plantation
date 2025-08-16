@@ -47,15 +47,11 @@ export default function LeaderboardPage() {
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Trophy className="h-4 w-4 text-yellow-500" />;
-    if (rank === 2) return <Medal className="h-4 w-4 text-gray-400" />;
-    if (rank === 3) return <Award className="h-4 w-4 text-amber-600" />;
     return null;
   };
 
   const getRankColor = (rank: number) => {
     if (rank === 1) return 'text-yellow-500 font-bold';
-    if (rank === 2) return 'text-gray-400 font-bold';
-    if (rank === 3) return 'text-amber-600 font-bold';
     return '';
   };
 
