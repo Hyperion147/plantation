@@ -22,12 +22,11 @@ const PANIPAT_BOUNDS = {
   maxLng: 77.2,
 };
 
+// All fields required
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: 'Plant name must be at least 2 characters.',
-  }),
-  description: z.string().optional(),
-  image: z.instanceof(File).optional(),
+  name: z.string().min(2, { message: 'Plant name must be at least 2 characters.' }),
+  description: z.string().min(1, { message: 'Description is required.' }),
+  image: z.instanceof(File, { message: 'Image is required.' }),
   lat: z.number()
     .min(PANIPAT_BOUNDS.minLat, { message: `Latitude must be at least ${PANIPAT_BOUNDS.minLat} (Panipat area)` })
     .max(PANIPAT_BOUNDS.maxLat, { message: `Latitude must be at most ${PANIPAT_BOUNDS.maxLat} (Panipat area)` }),
@@ -71,7 +70,7 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
         (position) => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
-          
+
           // Check if location is within Panipat bounds
           if (
             lat >= PANIPAT_BOUNDS.minLat && lat <= PANIPAT_BOUNDS.maxLat &&
@@ -103,7 +102,6 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
       return;
     }
 
-    // Double-check bounds validation
     if (
       values.lat < PANIPAT_BOUNDS.minLat || values.lat > PANIPAT_BOUNDS.maxLat ||
       values.lng < PANIPAT_BOUNDS.minLng || values.lng > PANIPAT_BOUNDS.maxLng
@@ -122,7 +120,7 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
       formData.append('lng', values.lng.toString());
       formData.append('userId', userId);
       formData.append('userName', userName);
-      
+
       if (values.image) {
         formData.append('image', values.image);
       }
@@ -148,13 +146,14 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
         description: '',
         lat: 29.3909,
         lng: 76.9635,
+        image: undefined,
       });
       setPreviewImage(null);
-      
+
       // Invalidate and refetch queries
       await queryClient.invalidateQueries({ queryKey: ['userPlants'] });
       await queryClient.invalidateQueries({ queryKey: ['plants'] });
-      
+
       // Refresh the page to update all components
       router.refresh();
     } catch (error) {
@@ -179,6 +178,7 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
             {/* Plant Name */}
             <FormField
               control={form.control}
@@ -187,7 +187,7 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
                 <FormItem>
                   <FormLabel>Plant Name *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Monstera Deliciosa" {...field} />
+                    <Input placeholder="Monstera Deliciosa" {...field} required />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -196,7 +196,7 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
 
             {/* Image Upload */}
             <div className="space-y-4">
-              <FormLabel>Plant Image</FormLabel>
+              <FormLabel>Plant Image *</FormLabel>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Input
@@ -204,7 +204,9 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
                     accept="image/*"
                     onChange={handleImageChange}
                     className="cursor-pointer"
+                    required
                   />
+                  <FormMessage />
                   <p className="text-xs text-muted-foreground">
                     Upload a photo of your plant
                   </p>
@@ -227,12 +229,13 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Description *</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Describe your plant (species, care tips, etc.)"
                       className="resize-none min-h-[100px]"
                       {...field}
+                      required
                     />
                   </FormControl>
                   <FormMessage />
@@ -244,9 +247,9 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-muted-foreground" />
-                <FormLabel>Location (Panipat Area Only)</FormLabel>
+                <FormLabel>Location (Panipat Area Only) *</FormLabel>
               </div>
-              
+
               <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
                 <p className="text-sm text-emerald-800 mb-3">
                   <strong>Panipat Area Bounds:</strong><br />
@@ -254,20 +257,21 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
                   Longitude: {PANIPAT_BOUNDS.minLng}° to {PANIPAT_BOUNDS.maxLng}°
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="lat"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm">Latitude</FormLabel>
+                      <FormLabel className="text-sm">Latitude *</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="number" 
-                          step="any" 
-                          placeholder="29.3909" 
+                        <Input
+                          type="number"
+                          step="any"
+                          placeholder="29.3909"
                           {...field}
+                          required
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 29.3909)}
                         />
                       </FormControl>
@@ -281,13 +285,14 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
                   name="lng"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm">Longitude</FormLabel>
+                      <FormLabel className="text-sm">Longitude *</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="number" 
-                          step="any" 
-                          placeholder="76.9635" 
+                        <Input
+                          type="number"
+                          step="any"
+                          placeholder="76.9635"
                           {...field}
+                          required
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 76.9635)}
                         />
                       </FormControl>
@@ -297,9 +302,9 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
                 />
               </div>
 
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={getCurrentLocation}
                 className="w-full sm:w-auto"
               >

@@ -1,42 +1,37 @@
-// app/api/user/[uid]/route.ts
-import { pool } from '@/app/config/db';
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,PUT,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    },
+  });
+}
+import { database } from '@/app/config/firebase';
 import { NextResponse } from 'next/server';
+import { ref, get, update } from "firebase/database";
 
+// Helper: Await params for Next.js 13+
 export async function GET(
   request: Request,
-  { params }: { params: { uuid: string } }
+  { params }: { params: Promise<{ uid: string }> }
 ) {
   try {
-    // Temporary mock data until database is set up
-    const mockUser = {
-      id: 'mock-user-id',
-      firebase_uid: params.uuid,
-      email: 'user@example.com',
-      display_name: 'Test User',
-      photo_url: null,
-      created_at: new Date().toISOString(),
-    };
+    const { uid } = await params;
+    const userRef = ref(database, `users/${uid}`);
+    const snapshot = await get(userRef);
 
-    return NextResponse.json(mockUser);
-    
-    // Uncomment this when database is ready:
-    /*
-    const client = await pool.connect();
-    const res = await client.query(
-      'SELECT id, firebase_uid, email, display_name, photo_url, created_at FROM users WHERE firebase_uid = $1',
-      [params.uuid]
-    );
-    client.release();
-
-    if (res.rows.length === 0) {
+    if (!snapshot.exists()) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(res.rows[0]);
-    */
+    const user = snapshot.val();
+    return NextResponse.json(user);
+
   } catch (error) {
     console.error('Error fetching user:', error);
     return NextResponse.json(
@@ -48,42 +43,36 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { uuid: string } }
+  { params }: { params: Promise<{ uid: string }> }
 ) {
   try {
+    const { uid } = await params;
     const { display_name, photo_url } = await request.json();
-    
-    // Temporary mock response
-    const mockUser = {
-      id: 'mock-user-id',
-      firebase_uid: params.uuid,
-      email: 'user@example.com',
-      display_name: display_name,
-      photo_url: photo_url,
-      created_at: new Date().toISOString(),
-    };
 
-    return NextResponse.json(mockUser);
-    
-    // Uncomment this when database is ready:
-    /*
-    const client = await pool.connect();
-    
-    const res = await client.query(
-      'UPDATE users SET display_name = $1, photo_url = $2 WHERE firebase_uid = $3 RETURNING *',
-      [display_name, photo_url, params.uuid]
-    );
-    client.release();
+    // Update the data in Firebase
+    const updates: any = {};
+    if (display_name !== undefined) updates.display_name = display_name;
+    if (photo_url !== undefined) updates.photo_url = photo_url;
 
-    if (res.rows.length === 0) {
+    const userRef = ref(database, `users/${uid}`);
+
+    // apply update if keys exist
+    await update(userRef, updates);
+
+    // Get updated user data
+    const snapshot = await get(userRef);
+
+    const user = snapshot.exists() ? snapshot.val() : null;
+
+    if (!user) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'User not found after update' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(res.rows[0]);
-    */
+    return NextResponse.json(user);
+
   } catch (error) {
     console.error('Error updating user:', error);
     return NextResponse.json(

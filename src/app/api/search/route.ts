@@ -1,3 +1,13 @@
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    },
+  });
+}
 // app/api/search/route.ts
 import { NextResponse } from 'next/server';
 import { database } from '@/app/config/firebase';
