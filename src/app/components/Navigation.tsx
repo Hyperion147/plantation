@@ -35,7 +35,7 @@ export default function Navigation() {
     { href: '/map', icon: Map, label: 'Map' },
     { href: '/search', icon: Search, label: 'Search' },
     // { href: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
-    { href: '/admin', icon: BarChart3, label: 'Admin' },
+    // { href: '/admin', icon: BarChart3, label: 'Admin' },
   ];
 
   if (loading) {

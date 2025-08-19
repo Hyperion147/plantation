@@ -1,3 +1,49 @@
+import { remove } from 'firebase/database';
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const plantId = searchParams.get('id');
+    const userId = searchParams.get('userId');
+    if (!plantId || !userId) {
+      return NextResponse.json(
+        { error: 'Missing plantId or userId' },
+        { status: 400 }
+      );
+    }
+    const plantRef = dbRef(database, `plants/${plantId}`);
+    const snapshot = await get(plantRef);
+    if (!snapshot.exists()) {
+      return NextResponse.json(
+        { error: 'Plant not found' },
+        { status: 404 }
+      );
+    }
+    const plant = snapshot.val();
+    // Only allow owner or admin to delete
+    if (plant.user_id !== userId) {
+      // Check if user is admin
+      const adminRef = dbRef(database, `admins/${userId}`);
+      const adminSnap = await get(adminRef);
+      const isAdmin = adminSnap.exists() && !!adminSnap.val();
+      if (!isAdmin) {
+        return NextResponse.json(
+          { error: 'Not authorized to delete this plant' },
+          { status: 403 }
+        );
+      }
+    }
+    // Delete plant
+    await remove(plantRef);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting plant:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete plant' },
+      { status: 500 }
+    );
+  }
+}
 export function OPTIONS() {
   return new Response(null, {
     status: 204,
@@ -13,6 +59,7 @@ import { NextResponse } from 'next/server';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage, database } from '@/app/config/firebase';
 import { ref as dbRef, push, get, query, orderByChild, equalTo, startAt, endAt } from 'firebase/database';
+// Correct import for remove is included below with other database imports
 
 export async function GET(request: Request) {
   try {
@@ -97,6 +144,28 @@ export async function POST(request: Request) {
         { error: 'Missing required fields' },
         { status: 400 }
       );
+    }
+
+    // Check if user is admin
+    const adminRef = dbRef(database, `admins/${userId}`);
+    const adminSnap = await get(adminRef);
+    const isAdmin = adminSnap.exists() && !!adminSnap.val();
+
+    // If not admin, check plant count
+    if (!isAdmin) {
+      const plantsRef = dbRef(database, 'plants');
+      const userPlantsQuery = query(plantsRef, orderByChild('user_id'), equalTo(userId));
+      const userPlantsSnap = await get(userPlantsQuery);
+      let count = 0;
+      if (userPlantsSnap.exists()) {
+        userPlantsSnap.forEach(() => { count++; });
+      }
+      if (count >= 5) {
+        return NextResponse.json(
+          { error: 'You can only register up to 5 plants.' },
+          { status: 403 }
+        );
+      }
     }
 
     // Upload image if provided
