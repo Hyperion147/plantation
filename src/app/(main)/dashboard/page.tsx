@@ -214,7 +214,10 @@ export default function DashboardPage() {
                         )}
                         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3" />
-                          <span>{new Date(plant.created_at).toLocaleDateString()}</span>
+                          <span>{new Date(plant.created_at).toLocaleDateString()} at {new Date(plant.created_at).toLocaleTimeString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <span className="font-mono bg-muted px-2 py-1 rounded">PID: {plant.pid}</span>
                         </div>
                       </div>
                     </div>

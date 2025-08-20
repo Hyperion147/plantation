@@ -7,25 +7,10 @@ import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Plant as LibPlant} from '@/lib/types';
+import { Plant } from '@/lib/types';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Users, Leaf, TrendingUp, MapPin } from 'lucide-react';
-
-// Helper to safely normalize created_at
-function normalizeCreatedAt(value: unknown): string {
-  if (typeof value === 'string') return value;
-  if (value instanceof Date) return value.toISOString();
-  if (value && typeof (value as { toISOString?: unknown }).toISOString === 'function') {
-    return (value as { toISOString: () => string }).toISOString();
-  }
-  return value != null ? String(value) : '';
-}
-
-interface Plant extends Omit<LibPlant, 'image_url' | 'created_at'> {
-  image_url?: string; // Make it compatible
-  created_at: string; // Ensure created_at is always a string
-}
 
 // Dynamically import the map component with proper props
 const PlantMap = dynamic(() => import('@/app/components/map/PlantMap'), {
@@ -60,13 +45,8 @@ export default function AdminPage() {
       try {
         // Fetch plants data for the map
         const plantsResponse = await fetch('/api/plants');
+        if (!plantsResponse.ok) throw new Error('Failed to fetch plants');
         const plantsData = await plantsResponse.json();
-        // Ensure created_at is always a string
-    const normalizedPlants = plantsData.map((plant: Plant) => ({
-      ...plant,
-      created_at: normalizeCreatedAt(plant.created_at)
-    }));
-        setPlants(normalizedPlants);
         setPlants(plantsData);
 
         // Fetch admin stats

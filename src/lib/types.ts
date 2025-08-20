@@ -9,6 +9,7 @@ export type User = {
 // Plant type
 export type Plant = {
   id: string | number;
+  pid: string;
   name: string;
   description?: string;
   image_url?: string | null;

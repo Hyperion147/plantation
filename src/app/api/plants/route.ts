@@ -102,8 +102,13 @@ export async function GET(request: Request) {
       // Filter by userId
       query = query.eq('user_id', userId);
     } else if (queryParam) {
-      // Search functionality using Supabase's full-text search
-      query = query.or(`name.ilike.%${queryParam}%,description.ilike.%${queryParam}%`);
+      // Search functionality using Supabase's full-text search and PID
+      if (!isNaN(Number(queryParam))) {
+        // If query is a number, search by pid as well
+        query = query.or(`name.ilike.%${queryParam}%,description.ilike.%${queryParam}%,pid.eq.${queryParam}`);
+      } else {
+        query = query.or(`name.ilike.%${queryParam}%,description.ilike.%${queryParam}%`);
+      }
     }
 
     // Order by created_at
@@ -199,7 +204,69 @@ export async function POST(request: Request) {
     }
 
     // Save to Supabase Database
-    const { data: plant, error: insertError } = await admin
+    // Get the current max PID - use a more robust query to handle both numeric and non-numeric PIDs
+    const { data: maxPidData, error: maxPidError } = await admin
+      .from('plants')
+      .select('pid')
+      .order('pid', { ascending: false })
+      .limit(1);
+
+    if (maxPidError) {
+      console.error('Error fetching max PID:', maxPidError);
+      return NextResponse.json(
+        { error: 'Failed to generate PID', details: maxPidError.message },
+        { status: 500 }
+      );
+    }
+
+    let nextPid = 1001;
+    if (maxPidData && maxPidData.length > 0 && maxPidData[0].pid) {
+      const lastPid = maxPidData[0].pid;
+      // Try to parse as integer, but handle cases where PID might be non-numeric
+      const numericPid = parseInt(lastPid.toString(), 10);
+      if (!isNaN(numericPid) && numericPid >= 1001) {
+        nextPid = numericPid + 1;
+      } else {
+        // If the last PID is not numeric or less than 1001, start from 1001
+        nextPid = 1001;
+      }
+    }
+
+    console.log('PID generation:', { maxPidData, nextPid, lastPid: maxPidData?.[0]?.pid });
+
+    // Ensure we have a unique PID by checking if it already exists
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (attempts < maxAttempts) {
+      // Check if this PID already exists
+      const { data: existingPid, error: checkError } = await admin
+        .from('plants')
+        .select('pid')
+        .eq('pid', String(nextPid))
+        .single();
+      
+      if (checkError && checkError.code === 'PGRST116') {
+        // PID doesn't exist, we can use it
+        break;
+      } else if (checkError) {
+        console.error('Error checking PID uniqueness:', checkError);
+        break;
+      } else if (existingPid) {
+        // PID exists, increment and try again
+        nextPid++;
+        attempts++;
+      } else {
+        // No error and no data means PID doesn't exist
+        break;
+      }
+    }
+
+    console.log('Final PID after uniqueness check:', nextPid, 'attempts:', attempts);
+
+    // Try to insert with the generated PID
+    console.log('Attempting to insert with PID:', String(nextPid));
+    let insertResult = await admin
       .from('plants')
       .insert({
         name,
@@ -209,9 +276,62 @@ export async function POST(request: Request) {
         lat,
         lng,
         image_url: imageUrl,
+        pid: String(nextPid),
       })
       .select()
       .single();
+
+    console.log('Insert result:', { success: !insertResult.error, error: insertResult.error });
+
+    // If PID conflict, try with a timestamp-based PID as fallback
+    if (insertResult.error && insertResult.error.code === '23505') { // Unique constraint violation
+      console.log('PID conflict, using fallback PID generation');
+      const fallbackPid = `P${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      console.log('Fallback PID:', fallbackPid);
+      
+      insertResult = await admin
+        .from('plants')
+        .insert({
+          name,
+          description,
+          user_id: effectiveUserId,
+          user_name: effectiveUserName,
+          lat,
+          lng,
+          image_url: imageUrl,
+          pid: fallbackPid,
+        })
+        .select()
+        .single();
+        
+      console.log('Fallback insert result:', { success: !insertResult.error, error: insertResult.error });
+    }
+
+    // If still failing, try one more time with a completely random PID
+    if (insertResult.error && insertResult.error.code === '23505') {
+      console.log('Still getting PID conflict, using random PID');
+      const randomPid = `P${Math.random().toString(36).substr(2, 15)}`;
+      console.log('Random PID:', randomPid);
+      
+      insertResult = await admin
+        .from('plants')
+        .insert({
+          name,
+          description,
+          user_id: effectiveUserId,
+          user_name: effectiveUserName,
+          lat,
+          lng,
+          image_url: imageUrl,
+          pid: randomPid,
+        })
+        .select()
+        .single();
+        
+      console.log('Random PID insert result:', { success: !insertResult.error, error: insertResult.error });
+    }
+
+    const { data: plant, error: insertError } = insertResult;
 
     if (insertError) {
       console.error('Error inserting plant:', insertError);
@@ -220,6 +340,8 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    console.log('Plant successfully created with PID:', plant.pid);
 
     return NextResponse.json(plant);
   } catch (error) {

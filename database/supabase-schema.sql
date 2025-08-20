@@ -5,6 +5,7 @@ CREATE EXTENSION IF NOT EXISTS "postgis";
 -- Create plants table
 CREATE TABLE IF NOT EXISTS plants (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  pid VARCHAR(20) UNIQUE NOT NULL,
   name VARCHAR(255) NOT NULL,
   description TEXT,
   user_id UUID NOT NULL,
@@ -28,6 +29,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_plants_user_id ON plants(user_id);
+CREATE INDEX IF NOT EXISTS idx_plants_pid ON plants(pid);
 CREATE INDEX IF NOT EXISTS idx_plants_created_at ON plants(created_at);
 CREATE INDEX IF NOT EXISTS idx_plants_name ON plants(name);
 CREATE INDEX IF NOT EXISTS idx_plants_location ON plants USING GIST(ST_SetSRID(ST_MakePoint(lng, lat), 4326));

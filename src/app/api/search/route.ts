@@ -24,11 +24,38 @@ export async function GET(request: Request) {
     const supabase = await getSupabaseServerClient();
     
     // Use Supabase's full-text search capabilities
-    const { data: plants, error } = await supabase
-      .from('plants')
-      .select('*')
-      .or(`name.ilike.%${queryParam}%,description.ilike.%${queryParam}%,user_name.ilike.%${queryParam}%`)
-      .order('created_at', { ascending: false });
+    let plants: any[] = [];
+    let error = null;
+    if (!isNaN(Number(queryParam))) {
+      // Search by PID
+      const { data: pidData, error: pidError } = await supabase
+        .from('plants')
+        .select('*')
+        .eq('pid', queryParam);
+      if (pidError) error = pidError;
+      if (pidData) plants = plants.concat(pidData);
+
+      // Also search by name/description/user_name
+      const { data: otherData, error: otherError } = await supabase
+        .from('plants')
+        .select('*')
+        .or(`name.ilike.%${queryParam}%,description.ilike.%${queryParam}%,user_name.ilike.%${queryParam}%`);
+      if (otherError) error = otherError;
+      if (otherData) {
+        // Avoid duplicates
+        const existingPids = new Set(plants.map(p => p.id));
+        plants = plants.concat(otherData.filter(p => !existingPids.has(p.id)));
+      }
+    } else {
+      const { data: otherData, error: otherError } = await supabase
+        .from('plants')
+        .select('*')
+        .or(`name.ilike.%${queryParam}%,description.ilike.%${queryParam}%,user_name.ilike.%${queryParam}%`);
+      if (otherError) error = otherError;
+      if (otherData) plants = otherData;
+    }
+    // Sort by created_at
+    plants = plants.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     if (error) {
       console.error('Error searching plants:', error);

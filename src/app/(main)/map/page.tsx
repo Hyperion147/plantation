@@ -139,8 +139,14 @@ export default function MapPage() {
                           {plant.lat.toFixed(3)}, {plant.lng.toFixed(3)}
                         </p>
                       )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(plant.created_at).toLocaleDateString()} at {new Date(plant.created_at).toLocaleTimeString()}
+                      </p>
                       <p className="text-xs text-emerald-600 font-medium mt-1">
                         📍 Panipat, Haryana
+                      </p>
+                      <p className="text-xs text-blue-600 font-semibold mt-1">
+                        PID: {plant.pid}
                       </p>
                     </div>
                   </div>

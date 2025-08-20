@@ -5,6 +5,7 @@ A Next.js web application that allows users to track and manage their plants wit
 ## Features
 
 - 🌱 **Plant Tracking**: Add plants with names, descriptions, images, and GPS coordinates
+- 🆔 **Unique Plant IDs**: Each plant gets a unique PID starting from 1001
 - 🗺️ **Interactive Map**: View all tracked plants on an interactive map using Leaflet
 - 🏆 **Leaderboard**: See top users based on the number of plants they've tracked
 - 🔍 **Search**: Search through plants by name or ID
@@ -72,6 +73,11 @@ DB_PORT=5432
 4. Run the database schema:
    ```bash
    # Copy the SQL from database/supabase-schema.sql and run it in your Supabase SQL editor
+   ```
+   
+   **Important**: If you have an existing database without the PID field, run the migration:
+   ```bash
+   # Copy the SQL from database/migration-add-pid.sql and run it in your Supabase SQL editor
    ```
 
 ### 5. Run the development server
