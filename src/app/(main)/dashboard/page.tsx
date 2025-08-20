@@ -147,10 +147,16 @@ export default function DashboardPage() {
                     <p className="text-sm text-muted-foreground mb-4">
                       Start tracking your plants with photos, descriptions, and locations
                     </p>
-                    <Button onClick={() => setShowPlantForm(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Track a Plant
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                      <Button onClick={() => setShowPlantForm(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Track a Plant
+                      </Button>
+                      <Button variant="outline" onClick={() => alert('Capture a Plant feature coming soon!')}>
+                        <Leaf className="h-4 w-4 mr-2" />
+                        Capture a Plant
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
