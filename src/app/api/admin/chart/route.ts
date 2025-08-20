@@ -10,8 +10,7 @@ export function OPTIONS() {
 }
 
 import { NextResponse } from 'next/server';
-import { database } from '@/app/config/firebase';
-import { ref as dbRef, get } from 'firebase/database';
+import { getSupabaseServerClient } from '@/app/config/supabase-server';
 
 function getWeekStart(date: Date) {
   const d = new Date(date);
@@ -22,19 +21,29 @@ function getWeekStart(date: Date) {
 
 export async function GET() {
   try {
-    const plantsRef = dbRef(database, 'plants');
-    const snapshot = await get(plantsRef);
+    const supabase = await getSupabaseServerClient();
+    
+    // Get all plants with creation dates
+    const { data: plants, error } = await supabase
+      .from('plants')
+      .select('created_at');
+
+    if (error) {
+      console.error('Error fetching plants for chart:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch chart data' },
+        { status: 500 }
+      );
+    }
+
     const weekly: Record<string, number> = {};
 
-    if (snapshot.exists()) {
-      snapshot.forEach((childSnapshot) => {
-        const plant = childSnapshot.val();
-        if (plant.created_at) {
-          const week = getWeekStart(new Date(plant.created_at));
-          weekly[week] = (weekly[week] || 0) + 1;
-        }
-      });
-    }
+    plants?.forEach((plant) => {
+      if (plant.created_at) {
+        const week = getWeekStart(new Date(plant.created_at));
+        weekly[week] = (weekly[week] || 0) + 1;
+      }
+    });
 
     // Sort by week and format for chart
     const chartData = Object.entries(weekly)

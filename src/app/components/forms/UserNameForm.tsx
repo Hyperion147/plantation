@@ -27,12 +27,12 @@ export default function UserNameForm({ onSuccess }: UserNameFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      display_name: user?.displayName || '',
+      display_name: (user?.user_metadata as any)?.name || '',
     },
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!user?.uid) {
+    if (!user?.id) {
       toast.error('You must be logged in');
       return;
     }
@@ -40,14 +40,15 @@ export default function UserNameForm({ onSuccess }: UserNameFormProps) {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`/api/user/${user.uid}`, {
+      const response = await fetch(`/api/user/${user.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
-          display_name: values.display_name,
-          photo_url: user.photoURL,
+          name: values.display_name,
+          avatar_url: (user.user_metadata as any)?.avatar_url ?? null,
         }),
       });
 

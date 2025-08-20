@@ -10,32 +10,45 @@ export function OPTIONS() {
 }
 
 import { NextResponse } from 'next/server';
-import { database } from '@/app/config/firebase';
-import { ref as dbRef, get } from 'firebase/database';
+import { createServerSupabaseClient } from '@/app/config/supabase';
 
 export async function GET() {
   try {
-    const plantsRef = dbRef(database, 'plants');
-    const snapshot = await get(plantsRef);
-    const leaderboard: Record<string, { user_id: string; user_name: string; plant_count: number }> = {};
+    const supabase = createServerSupabaseClient();
+    
+    // Get plants with user information and count by user
+    const { data: plants, error } = await supabase
+      .from('plants')
+      .select('user_id, user_name');
 
-    if (snapshot.exists()) {
-      snapshot.forEach((childSnapshot) => {
-        const plant = childSnapshot.val();
-        if (plant.user_id && plant.user_name) {
-          if (!leaderboard[plant.user_id]) {
-            leaderboard[plant.user_id] = {
-              user_id: plant.user_id,
-              user_name: plant.user_name,
-              plant_count: 0,
-            };
-          }
-          leaderboard[plant.user_id].plant_count++;
-        }
-      });
+    if (error) {
+      console.error('Error fetching plants for leaderboard:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch leaderboard' },
+        { status: 500 }
+      );
     }
 
-    const sorted = Object.values(leaderboard).sort((a, b) => b.plant_count - a.plant_count).slice(0, 50);
+    // Count plants per user
+    const leaderboard: Record<string, { user_id: string; user_name: string; plant_count: number }> = {};
+    
+    plants?.forEach((plant) => {
+      if (plant.user_id && plant.user_name) {
+        if (!leaderboard[plant.user_id]) {
+          leaderboard[plant.user_id] = {
+            user_id: plant.user_id,
+            user_name: plant.user_name,
+            plant_count: 0,
+          };
+        }
+        leaderboard[plant.user_id].plant_count++;
+      }
+    });
+
+    const sorted = Object.values(leaderboard)
+      .sort((a, b) => b.plant_count - a.plant_count)
+      .slice(0, 50);
+
     return NextResponse.json(sorted);
   } catch (error) {
     console.error('Error fetching leaderboard:', error);

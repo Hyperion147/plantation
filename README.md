@@ -8,7 +8,7 @@ A Next.js web application that allows users to track and manage their plants wit
 - 🗺️ **Interactive Map**: View all tracked plants on an interactive map using Leaflet
 - 🏆 **Leaderboard**: See top users based on the number of plants they've tracked
 - 🔍 **Search**: Search through plants by name or ID
-- 🔐 **Authentication**: Google OAuth login system using Firebase
+- 🔐 **Authentication**: Google OAuth login system using Supabase
 - 📊 **Admin Dashboard**: View statistics and analytics about the platform
 - 📱 **Responsive Design**: Works on desktop and mobile devices
 
@@ -16,8 +16,9 @@ A Next.js web application that allows users to track and manage their plants wit
 
 - **Frontend**: Next.js 15, React 19, TypeScript
 - **Styling**: Tailwind CSS, Radix UI components
-- **Authentication**: Firebase Auth
-- **Database**: PostgreSQL with PostGIS extension
+- **Authentication**: Supabase Auth with Google OAuth
+- **Database**: Supabase PostgreSQL with PostGIS extension
+- **Storage**: Supabase Storage for plant images
 - **Maps**: Leaflet with React-Leaflet
 - **Charts**: Recharts
 - **Forms**: React Hook Form with Zod validation
@@ -26,8 +27,8 @@ A Next.js web application that allows users to track and manage their plants wit
 ## Prerequisites
 
 - Node.js 18+ 
-- PostgreSQL 12+ with PostGIS extension
-- Firebase project
+- Supabase account
+- Git
 
 ## Setup Instructions
 
@@ -49,21 +50,12 @@ npm install
 Create a `.env.local` file in the root directory:
 
 ```env
-# Firebase Configuration
-NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key_here
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id_here
-NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
 
-# Firebase Admin (for server-side operations)
-FIREBASE_PROJECT_ID=your_project_id
-FIREBASE_CLIENT_EMAIL=your_service_account_email
-FIREBASE_PRIVATE_KEY=your_private_key
-
-# Database Configuration
+# Database Configuration (if using external PostgreSQL)
 DATABASE_URL=postgresql://username:password@localhost:5432/plantation_db
 DB_USER=your_db_user
 DB_HOST=localhost
@@ -72,27 +64,17 @@ DB_PASSWORD=your_db_password
 DB_PORT=5432
 ```
 
-### 4. Set up the database
+### 4. Set up Supabase
 
-1. Create a PostgreSQL database
-2. Enable the PostGIS extension:
-   ```sql
-   CREATE EXTENSION postgis;
-   ```
-3. Run the schema file:
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Enable Google OAuth in Authentication settings
+3. Create a storage bucket named "plants" in Storage settings
+4. Run the database schema:
    ```bash
-   psql -d plantation_db -f database/schema.sql
+   # Copy the SQL from database/supabase-schema.sql and run it in your Supabase SQL editor
    ```
 
-### 5. Configure Firebase
-
-1. Create a Firebase project
-2. Enable Google Authentication
-3. Enable Firebase Storage
-4. Create a service account and download the credentials
-5. Add the credentials to your environment variables
-
-### 6. Run the development server
+### 5. Run the development server
 
 ```bash
 npm run dev

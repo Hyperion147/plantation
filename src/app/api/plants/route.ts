@@ -1,65 +1,93 @@
-import { remove } from 'firebase/database';
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
-export async function DELETE(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const plantId = searchParams.get('id');
-    const userId = searchParams.get('userId');
-    if (!plantId || !userId) {
-      return NextResponse.json(
-        { error: 'Missing plantId or userId' },
-        { status: 400 }
-      );
-    }
-    const plantRef = dbRef(database, `plants/${plantId}`);
-    const snapshot = await get(plantRef);
-    if (!snapshot.exists()) {
-      return NextResponse.json(
-        { error: 'Plant not found' },
-        { status: 404 }
-      );
-    }
-    const plant = snapshot.val();
-    // Only allow owner or admin to delete
-    if (plant.user_id !== userId) {
-      // Check if user is admin
-      const adminRef = dbRef(database, `admins/${userId}`);
-      const adminSnap = await get(adminRef);
-      const isAdmin = adminSnap.exists() && !!adminSnap.val();
-      if (!isAdmin) {
-        return NextResponse.json(
-          { error: 'Not authorized to delete this plant' },
-          { status: 403 }
-        );
-      }
-    }
-    // Delete plant
-    await remove(plantRef);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting plant:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete plant' },
-      { status: 500 }
-    );
-  }
-}
+import { NextResponse } from 'next/server';
+import { getSupabaseServerClient } from '@/app/config/supabase-server';
+import { getSupabaseAdminClient } from '@/app/config/supabase-admin';
+
 export function OPTIONS() {
   return new Response(null, {
     status: 204,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+      'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type,Authorization',
     },
   });
 }
-// app/api/plants/route.ts
-import { NextResponse } from 'next/server';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage, database } from '@/app/config/firebase';
-import { ref as dbRef, push, get, query, orderByChild, equalTo, startAt, endAt } from 'firebase/database';
-// Correct import for remove is included below with other database imports
+
+export async function DELETE(request: Request) {
+  try {
+    const supabase = await getSupabaseServerClient();
+    
+    // Get current session/user from cookies
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const user = session?.user || null;
+    const authError = sessionError || null;
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized', details: authError?.message ?? 'No active session' },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const plantId = searchParams.get('id');
+
+    if (!plantId) {
+      return NextResponse.json(
+        { error: 'Missing plantId' },
+        { status: 400 }
+      );
+    }
+
+    // Get the plant to check ownership
+    const { data: plant, error: fetchError } = await supabase
+      .from('plants')
+      .select('*')
+      .eq('id', plantId)
+      .single();
+
+    if (fetchError || !plant) {
+      return NextResponse.json(
+        { error: 'Plant not found' },
+        { status: 404 }
+      );
+    }
+
+    // Only allow owner to delete (RLS will handle this, but we check for better error messages)
+    if (plant.user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Not authorized to delete this plant' },
+        { status: 403 }
+      );
+    }
+
+    // Delete the plant (RLS will ensure only the owner can delete)
+    const { error: deleteError } = await supabase
+      .from('plants')
+      .delete()
+      .eq('id', plantId)
+      .eq('user_id', user.id);
+
+    if (deleteError) {
+      console.error('Error deleting plant:', deleteError);
+      return NextResponse.json(
+        { error: 'Failed to delete plant' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error in plants DELETE:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function GET(request: Request) {
   try {
@@ -67,62 +95,35 @@ export async function GET(request: Request) {
     const queryParam = searchParams.get('q');
     const userId = searchParams.get('userId');
 
-    const plantsRef = dbRef(database, 'plants');
-    let plantsQuery;
+    const supabase = await getSupabaseServerClient();
+    let query = supabase.from('plants').select('*');
 
     if (userId) {
       // Filter by userId
-      plantsQuery = query(plantsRef, orderByChild('user_id'), equalTo(userId));
+      query = query.eq('user_id', userId);
     } else if (queryParam) {
-      // Search functionality - Firebase doesn't support full-text search
-      // We'll implement a simple name-based search
-      plantsQuery = query(plantsRef, orderByChild('name'), startAt(queryParam), endAt(queryParam + '\uf8ff'));
-    } else {
-      // Get all plants
-      plantsQuery = query(plantsRef, orderByChild('created_at'));
+      // Search functionality using Supabase's full-text search
+      query = query.or(`name.ilike.%${queryParam}%,description.ilike.%${queryParam}%`);
     }
 
-    const snapshot = await get(plantsQuery);
-    const plants: any[] = [];
+    // Order by created_at
+    query = query.order('created_at', { ascending: false });
 
-    if (snapshot.exists()) {
-      snapshot.forEach((childSnapshot) => {
-        const plant = childSnapshot.val();
-        plants.push({
-          id: childSnapshot.key,
-          ...plant,
-        });
-      });
+    const { data: plants, error } = await query;
+
+    if (error) {
+      console.error('Error fetching plants:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch plants' },
+        { status: 500 }
+      );
     }
 
-    // If searching and no results found by name, try description search
-    if (queryParam && plants.length === 0) {
-      const allPlantsSnapshot = await get(plantsRef);
-      if (allPlantsSnapshot.exists()) {
-        allPlantsSnapshot.forEach((childSnapshot) => {
-          const plant = childSnapshot.val();
-          if (
-            plant.description?.toLowerCase().includes(queryParam.toLowerCase()) ||
-            plant.user_name?.toLowerCase().includes(queryParam.toLowerCase()) ||
-            childSnapshot.key?.includes(queryParam)
-          ) {
-            plants.push({
-              id: childSnapshot.key,
-              ...plant,
-            });
-          }
-        });
-      }
-    }
-
-    // Sort by creation date (newest first)
-    plants.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-    return NextResponse.json(plants);
+    return NextResponse.json(plants || []);
   } catch (error) {
-    console.error('Error fetching plants:', error);
+    console.error('Error in plants GET:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch plants' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -130,86 +131,101 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const supabase = await getSupabaseServerClient();
+    const admin = getSupabaseAdminClient();
+    
     const formData = await request.formData();
+
+    // Try session first; fall back to provided user fields
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const fallbackUserId = (formData.get('userId') as string) || '';
+    const fallbackUserName = (formData.get('userName') as string) || '';
+    const effectiveUserId = user?.id || fallbackUserId;
+    const effectiveUserName = user?.user_metadata?.name || user?.email || fallbackUserName || 'User';
+    if (!effectiveUserId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', details: authError?.message ?? 'No active session' },
+        { status: 401 }
+      );
+    }
+
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
-    const image = formData.get('image') as File;
     const lat = parseFloat(formData.get('lat') as string);
     const lng = parseFloat(formData.get('lng') as string);
-    const userId = formData.get('userId') as string;
-    const userName = formData.get('userName') as string;
+    const imageFile = formData.get('image') as File | null;
 
-    if (!name || !userId || !userName) {
+    // Validate required fields
+    if (!name || !lat || !lng) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Check if user is admin
-    const adminRef = dbRef(database, `admins/${userId}`);
-    const adminSnap = await get(adminRef);
-    const isAdmin = adminSnap.exists() && !!adminSnap.val();
+    // Validate coordinates (assuming the same validation as before)
+    if (lat < 29.2 || lat > 29.6 || lng < 76.7 || lng > 77.2) {
+      return NextResponse.json(
+        { error: 'Invalid coordinates' },
+        { status: 400 }
+      );
+    }
 
-    // If not admin, check plant count
-    if (!isAdmin) {
-      const plantsRef = dbRef(database, 'plants');
-      const userPlantsQuery = query(plantsRef, orderByChild('user_id'), equalTo(userId));
-      const userPlantsSnap = await get(userPlantsQuery);
-      let count = 0;
-      if (userPlantsSnap.exists()) {
-        userPlantsSnap.forEach(() => { count++; });
-      }
-      if (count >= 5) {
+    let imageUrl: string | null = null;
+
+    // Upload image to Supabase Storage if provided (use admin client to avoid policy issues)
+    if (imageFile) {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${effectiveUserId}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await admin.storage
+        .from('plants')
+        .upload(fileName, imageFile);
+
+      if (uploadError) {
+        console.error('Error uploading image:', uploadError);
         return NextResponse.json(
-          { error: 'You can only register up to 5 plants.' },
-          { status: 403 }
+          { error: 'Failed to upload image', details: uploadError.message },
+          { status: 500 }
         );
       }
+
+      // Get public URL
+      const { data: urlData } = admin.storage
+        .from('plants')
+        .getPublicUrl(fileName);
+      
+      imageUrl = urlData.publicUrl;
     }
 
-    // Upload image if provided
-    let imageUrl = null;
-    if (image) {
-      try {
-        const bytes = await image.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const imageRef = ref(storage, `plants/${Date.now()}_${image.name}`);
-        await uploadBytes(imageRef, buffer);
-        imageUrl = await getDownloadURL(imageRef);
-      } catch (uploadError) {
-        console.error('Error uploading image:', uploadError);
-        // Continue without image if upload fails
-      }
+    // Save to Supabase Database
+    const { data: plant, error: insertError } = await admin
+      .from('plants')
+      .insert({
+        name,
+        description,
+        user_id: effectiveUserId,
+        user_name: effectiveUserName,
+        lat,
+        lng,
+        image_url: imageUrl,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Error inserting plant:', insertError);
+      return NextResponse.json(
+        { error: 'Failed to save plant', details: insertError.message },
+        { status: 500 }
+      );
     }
 
-    // Create plant data
-    const plantData = {
-      name,
-      description: description || '',
-      image_url: imageUrl,
-      lat,
-      lng,
-      user_id: userId,
-      user_name: userName,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    // Save to Firebase Realtime Database
-    const plantsRef = dbRef(database, 'plants');
-    const newPlantRef = push(plantsRef, plantData);
-    
-    const newPlant = {
-      id: newPlantRef.key,
-      ...plantData,
-    };
-
-    return NextResponse.json(newPlant);
+    return NextResponse.json(plant);
   } catch (error) {
-    console.error('Error creating plant:', error);
+    console.error('Error in plants POST:', error);
     return NextResponse.json(
-      { error: 'Failed to create plant' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { GoogleLoginButton } from '@/app/components/auth/GoogleLoginButton';
+import GoogleLoginButton from '@/app/components/auth/GoogleLoginButton';
 import { useAuth } from '@/app/context/AuthContext';
 import { redirect } from 'next/navigation';
 import { useEffect } from 'react';

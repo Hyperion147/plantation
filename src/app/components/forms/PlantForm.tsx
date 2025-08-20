@@ -26,7 +26,7 @@ const PANIPAT_BOUNDS = {
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Plant name must be at least 2 characters.' }),
   description: z.string().min(1, { message: 'Description is required.' }),
-  image: z.instanceof(File, { message: 'Image is required.' }),
+  image: z.instanceof(File, { message: 'Image is required.' }).nullable(),
   lat: z.number()
     .min(PANIPAT_BOUNDS.minLat, { message: `Latitude must be at least ${PANIPAT_BOUNDS.minLat} (Panipat area)` })
     .max(PANIPAT_BOUNDS.maxLat, { message: `Latitude must be at most ${PANIPAT_BOUNDS.maxLat} (Panipat area)` }),
@@ -56,11 +56,13 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
     },
   });
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleImageChange = (file: File | undefined) => {
     if (file) {
-      form.setValue('image', file);
+      form.setValue('image', file, { shouldValidate: true });
       setPreviewImage(URL.createObjectURL(file));
+    } else {
+      form.setValue('image', null, { shouldValidate: true });
+      setPreviewImage(null);
     }
   };
 
@@ -128,10 +130,16 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
       const response = await fetch('/api/plants', {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create plant');
+        let details = '';
+        try {
+          const err = await response.json();
+          details = [err.error, err.details].filter(Boolean).join(' - ');
+        } catch {}
+        throw new Error(details || 'Failed to create plant');
       }
 
       const plant = await response.json();
@@ -195,33 +203,41 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
             />
 
             {/* Image Upload */}
-            <div className="space-y-4">
-              <FormLabel>Plant Image *</FormLabel>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="cursor-pointer"
-                    required
-                  />
-                  <FormMessage />
-                  <p className="text-xs text-muted-foreground">
-                    Upload a photo of your plant
-                  </p>
-                </div>
-                {previewImage && (
-                  <div className="flex justify-center">
-                    <img
-                      src={previewImage}
-                      alt="Plant preview"
-                      className="w-32 h-32 object-cover rounded-md border"
-                    />
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Plant Image *</FormLabel>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <FormControl>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleImageChange(e.target.files?.[0])}
+                          className="cursor-pointer"
+                          required
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-xs text-muted-foreground">
+                        Upload a photo of your plant
+                      </p>
+                    </div>
+                    {previewImage && (
+                      <div className="flex justify-center">
+                        <img
+                          src={previewImage}
+                          alt="Plant preview"
+                          className="w-32 h-32 object-cover rounded-md border"
+                        />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </FormItem>
+              )}
+            />
 
             {/* Description */}
             <FormField

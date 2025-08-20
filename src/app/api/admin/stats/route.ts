@@ -10,27 +10,36 @@ export function OPTIONS() {
 }
 
 import { NextResponse } from 'next/server';
-import { database } from '@/app/config/firebase';
-import { ref as dbRef, get } from 'firebase/database';
+import { getSupabaseServerClient } from '@/app/config/supabase-server';
 
 export async function GET() {
   try {
-    const plantsRef = dbRef(database, 'plants');
-    const snapshot = await get(plantsRef);
+    const supabase = await getSupabaseServerClient();
+    
+    // Get all plants
+    const { data: plants, error } = await supabase
+      .from('plants')
+      .select('user_id, created_at');
+
+    if (error) {
+      console.error('Error fetching plants for admin stats:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch admin stats' },
+        { status: 500 }
+      );
+    }
+
     let total_plants = 0;
     let total_users = new Set();
     let recent_plants = 0;
     const now = Date.now();
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
 
-    if (snapshot.exists()) {
-      snapshot.forEach((childSnapshot) => {
-        const plant = childSnapshot.val();
-        total_plants++;
-        if (plant.user_id) total_users.add(plant.user_id);
-        if (plant.created_at && new Date(plant.created_at).getTime() >= weekAgo) recent_plants++;
-      });
-    }
+    plants?.forEach((plant) => {
+      total_plants++;
+      if (plant.user_id) total_users.add(plant.user_id);
+      if (plant.created_at && new Date(plant.created_at).getTime() >= weekAgo) recent_plants++;
+    });
 
     return NextResponse.json({
       total_plants,

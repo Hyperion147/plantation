@@ -18,33 +18,33 @@ export default function DashboardPage() {
   const [showPlantForm, setShowPlantForm] = useState(false);
 
   const { data: userData, isLoading: isUserDataLoading, refetch: refetchUser } = useQuery({
-    queryKey: ['userData', user?.uid],
+    queryKey: ['userData', user?.id],
     queryFn: async () => {
-      if (!user?.uid) return null;
+      if (!user?.id) return null;
       
-      const response = await fetch(`/api/user/${user.uid}`);
+      const response = await fetch(`/api/user/${user.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch user data');
       }
       return response.json();
     },
-    enabled: !!user?.uid,
+    enabled: !!user?.id,
     staleTime: 60 * 1000, // 1 minute
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const { data: userPlants, isLoading: isPlantsLoading } = useQuery({
-    queryKey: ['userPlants', user?.uid],
+    queryKey: ['userPlants', user?.id],
     queryFn: async () => {
-      if (!user?.uid) return [];
+      if (!user?.id) return [];
       
-      const response = await fetch(`/api/plants?userId=${user.uid}`);
+      const response = await fetch(`/api/plants?userId=${user.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch plants');
       }
       return response.json();
     },
-    enabled: !!user?.uid,
+    enabled: !!user?.id,
     staleTime: 30 * 1000, // 30 seconds
   });
 
@@ -80,7 +80,7 @@ export default function DashboardPage() {
     );
   }
 
-  const displayName = userData?.display_name || user?.displayName || user?.email?.split('@')[0] || 'Guest';
+  const displayName = userData?.name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
 
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8">
@@ -124,7 +124,7 @@ export default function DashboardPage() {
           {showPlantForm ? (
             <div className="space-y-4">
               <PlantForm 
-                userId={user?.uid} 
+                userId={user?.id} 
                 userName={displayName} 
               />
               <Button 

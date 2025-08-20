@@ -58,7 +58,7 @@ export default function MapPage() {
           </div>
           
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <Card className="text-center">
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center justify-center mb-1">
@@ -66,18 +66,6 @@ export default function MapPage() {
                 </div>
                 <p className="text-lg sm:text-xl font-bold">{panipatPlants.length}</p>
                 <p className="text-xs text-muted-foreground">Plants in Panipat</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="text-center">
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex items-center justify-center mb-1">
-                  <Users className="h-4 w-4 text-blue-600" />
-                </div>
-                <p className="text-lg sm:text-xl font-bold">
-                  {new Set(panipatPlants.map((p: Plant) => p.user_id)).size}
-                </p>
-                <p className="text-xs text-muted-foreground">Local Users</p>
               </CardContent>
             </Card>
             

@@ -8,34 +8,63 @@ export function OPTIONS() {
     },
   });
 }
-import { database } from '@/app/config/firebase';
-import { NextResponse } from 'next/server';
-import { ref, get, update } from "firebase/database";
 
-// Helper: Await params for Next.js 13+
+import { NextResponse } from 'next/server';
+import { getSupabaseServerClient } from '@/app/config/supabase-server';
+import { getSupabaseAdminClient } from '@/app/config/supabase-admin';
+
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ uid: string }> }
+  ctx: { params: Promise<{ uuid: string }> }
 ) {
   try {
-    const { uid } = await params;
-    const userRef = ref(database, `users/${uid}`);
-    const snapshot = await get(userRef);
+    const params = await ctx.params;
+    const supabase = await getSupabaseServerClient();
+    const admin = getSupabaseAdminClient();
 
-    if (!snapshot.exists()) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+    // Try to fetch from public.users first
+    const { data: profile, error } = await admin
+      .from('users')
+      .select('*')
+      .eq('id', params.uuid)
+      .single();
+
+    if (profile && !error) {
+      return NextResponse.json(profile);
     }
 
-    const user = snapshot.val();
-    return NextResponse.json(user);
+    // If not found, try to upsert from auth session if this is the same user
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    if (authError || !authUser || authUser.id !== params.uuid) {
+      // Return null so clients can handle first-time profiles gracefully
+      return NextResponse.json(null);
+    }
 
+    const upsertPayload = {
+      id: authUser.id,
+      email: authUser.email,
+      name: authUser.user_metadata?.name ?? authUser.email?.split('@')[0] ?? 'User',
+      avatar_url: authUser.user_metadata?.avatar_url ?? null,
+    } as const;
+
+    const { data: upserted, error: upsertError } = await admin
+      .from('users')
+      .upsert(upsertPayload)
+      .select('*')
+      .single();
+
+    if (upsertError) {
+      console.error('Error upserting user profile:', upsertError);
+      return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
+    }
+
+    return NextResponse.json(upserted);
   } catch (error) {
-    console.error('Error fetching user:', error);
+    console.error('Error in user GET:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch user' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -43,40 +72,46 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ uid: string }> }
+  ctx: { params: Promise<{ uuid: string }> }
 ) {
   try {
-    const { uid } = await params;
-    const { display_name, photo_url } = await request.json();
-
-    // Update the data in Firebase
-    const updates: any = {};
-    if (display_name !== undefined) updates.display_name = display_name;
-    if (photo_url !== undefined) updates.photo_url = photo_url;
-
-    const userRef = ref(database, `users/${uid}`);
-
-    // apply update if keys exist
-    await update(userRef, updates);
-
-    // Get updated user data
-    const snapshot = await get(userRef);
-
-    const user = snapshot.exists() ? snapshot.val() : null;
-
-    if (!user) {
+    const params = await ctx.params;
+    const supabase = await getSupabaseServerClient();
+    
+    // Get the current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user || user.id !== params.uuid) {
       return NextResponse.json(
-        { error: 'User not found after update' },
-        { status: 404 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
-    return NextResponse.json(user);
+    const body = await request.json();
+    const { name, avatar_url } = body;
 
+    // Update the user data
+    const { data: updatedUser, error: updateError } = await supabase
+      .from('users')
+      .update({ name, avatar_url })
+      .eq('id', params.uuid)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Error updating user:', updateError);
+      return NextResponse.json(
+        { error: 'Failed to update user' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(updatedUser);
   } catch (error) {
-    console.error('Error updating user:', error);
+    console.error('Error in user PUT:', error);
     return NextResponse.json(
-      { error: 'Failed to update user' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

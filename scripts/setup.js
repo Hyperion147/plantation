@@ -29,14 +29,10 @@ async function setup() {
     }
   }
 
-  console.log('\n📝 Firebase Configuration:');
-  const firebaseApiKey = await question('Firebase API Key: ');
-  const firebaseAuthDomain = await question('Firebase Auth Domain: ');
-  const firebaseProjectId = await question('Firebase Project ID: ');
-  const firebaseStorageBucket = await question('Firebase Storage Bucket: ');
-  const firebaseMessagingSenderId = await question('Firebase Messaging Sender ID: ');
-  const firebaseAppId = await question('Firebase App ID: ');
-  const firebaseMeasurementId = await question('Firebase Measurement ID (optional): ');
+  console.log('\n📝 Supabase Configuration:');
+  const supabaseUrl = await question('Supabase URL: ');
+  const supabaseAnonKey = await question('Supabase Anon Key: ');
+  const supabaseServiceKey = await question('Supabase Service Role Key: ');
 
   console.log('\n🗄️ Database Configuration:');
   const dbUser = await question('Database User: ');
@@ -45,23 +41,10 @@ async function setup() {
   const dbPassword = await question('Database Password: ');
   const dbPort = await question('Database Port (5432): ') || '5432';
 
-  console.log('\n🔧 Firebase Admin Configuration:');
-  const firebaseClientEmail = await question('Firebase Service Account Email: ');
-  const firebasePrivateKey = await question('Firebase Private Key: ');
-
-  const envContent = `# Firebase Configuration
-NEXT_PUBLIC_FIREBASE_API_KEY=${firebaseApiKey}
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${firebaseAuthDomain}
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=${firebaseProjectId}
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${firebaseStorageBucket}
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${firebaseMessagingSenderId}
-NEXT_PUBLIC_FIREBASE_APP_ID=${firebaseAppId}
-NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${firebaseMeasurementId}
-
-# Firebase Admin (for server-side operations)
-FIREBASE_PROJECT_ID=${firebaseProjectId}
-FIREBASE_CLIENT_EMAIL=${firebaseClientEmail}
-FIREBASE_PRIVATE_KEY=${firebasePrivateKey}
+  const envContent = `# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=${supabaseUrl}
+NEXT_PUBLIC_SUPABASE_ANON_KEY=${supabaseAnonKey}
+SUPABASE_SERVICE_ROLE_KEY=${supabaseServiceKey}
 
 # Database Configuration
 DATABASE_URL=postgresql://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/${dbName}
@@ -76,10 +59,12 @@ DB_PORT=${dbPort}
   
   console.log('\n✅ Environment file created successfully!');
   console.log('\n📋 Next steps:');
-  console.log('1. Set up your PostgreSQL database with PostGIS extension');
-  console.log('2. Run: psql -d plantation_db -f database/schema.sql');
-  console.log('3. Install dependencies: npm install');
-  console.log('4. Start the development server: npm run dev');
+  console.log('1. Set up your Supabase project');
+  console.log('2. Enable Google OAuth in Supabase Auth settings');
+  console.log('3. Create a storage bucket named "plants" in Supabase Storage');
+  console.log('4. Run the Supabase schema: psql -d plantation_db -f database/supabase-schema.sql');
+  console.log('5. Install dependencies: npm install');
+  console.log('6. Start the development server: npm run dev');
   
   rl.close();
 }
