@@ -11,6 +11,7 @@ export function OPTIONS() {
 
 import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/app/config/supabase-server';
+import { Plant } from '@/lib/types';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
     const supabase = await getSupabaseServerClient();
     
     // Use Supabase's full-text search capabilities
-    let plants: any[] = [];
+    let plants: Plant[] = [];
     let error = null;
     if (!isNaN(Number(queryParam))) {
       // Search by PID

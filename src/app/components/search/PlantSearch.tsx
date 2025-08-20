@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/app/components/ui/skeleton";
-import { Search, User, Calendar, MapPin, X, Loader2 } from "lucide-react";
+import { Search, User, Calendar, MapPin } from "lucide-react";
 import { Plant } from "@/lib/types";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -78,7 +78,7 @@ export default function PlantSearch() {
         []
     );
 
-    const clearSearch = useCallback(() => {
+    useCallback(() => {
         setSearchTerm("");
     }, []);
 

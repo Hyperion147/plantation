@@ -43,7 +43,8 @@ const formSchema = z.object({
         })
         .max(PANIPAT_BOUNDS.maxLat, {
             message: `Latitude must be at most ${PANIPAT_BOUNDS.maxLat} (Panipat area)`,
-        }),
+        })
+        .optional(),
     lng: z
         .number()
         .min(PANIPAT_BOUNDS.minLng, {
@@ -51,7 +52,8 @@ const formSchema = z.object({
         })
         .max(PANIPAT_BOUNDS.maxLng, {
             message: `Longitude must be at most ${PANIPAT_BOUNDS.maxLng} (Panipat area)`,
-        }),
+        })
+        .optional(),
 });
 
 interface PlantFormProps {
@@ -71,8 +73,8 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
         defaultValues: {
             name: "",
             description: "",
-            lat: 29.3909, // Panipat center latitude
-            lng: 76.9635, // Panipat center longitude
+            lat: undefined,
+            lng: undefined,
         },
     });
 
@@ -104,9 +106,9 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
                         toast.error(
                             "Location is outside Panipat area. Please use coordinates within Panipat, Haryana."
                         );
-                        // Set to Panipat center instead
-                        form.setValue("lat", 29.3909);
-                        form.setValue("lng", 76.9635);
+                        // Clear the coordinates since they're outside bounds
+                        form.setValue("lat", undefined);
+                        form.setValue("lng", undefined);
                     }
                 },
                 (error) => {
@@ -129,6 +131,11 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
 
         if (!values.image) {
             toast.error("Plant image is required");
+            return;
+        }
+
+        if (!values.lat || !values.lng) {
+            toast.error("Latitude and longitude are required");
             return;
         }
 
@@ -182,8 +189,8 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
             form.reset({
                 name: "",
                 description: "",
-                lat: 29.3909,
-                lng: 76.9635,
+                lat: undefined,
+                lng: undefined,
                 image: undefined,
             });
             setPreviewImage(null);
@@ -353,14 +360,14 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
                                                 Latitude *
                                             </FormLabel>
                                             <FormControl>
-                                                                                                 <Input
-                                                     type="number"
-                                                     step="any"
-                                                     placeholder="29.3909"
-                                                     {...field}
-                                                     required
-                                                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 29.3909)}
-                                                 />
+                                                                                                                                                 <Input
+                                                    type="number"
+                                                    step="any"
+                                                    placeholder=""
+                                                    {...field}
+                                                    required
+                                                    onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                                                />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -376,14 +383,14 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
                                                 Longitude *
                                             </FormLabel>
                                             <FormControl>
-                                                                                                 <Input
-                                                     type="number"
-                                                     step="number"
-                                                     placeholder="76.9635"
-                                                     {...field}
-                                                     required
-                                                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 76.9635)}
-                                                 />
+                                                                                                                                                 <Input
+                                                    type="number"
+                                                    step="number"
+                                                    placeholder=""
+                                                    {...field}
+                                                    required
+                                                    onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                                                />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>

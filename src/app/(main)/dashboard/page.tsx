@@ -190,7 +190,7 @@ export default function DashboardPage() {
             </div>
           ) : userPlants && userPlants.length > 0 ? (
             <div className="space-y-4">
-              {userPlants.slice(0, 5).map((plant: { id: string; image_url?: string; name: string; description?: string; created_at: string; }) => (
+              {userPlants.slice(0, 5).map((plant: { id: string; image_url?: string; name: string; description?: string; created_at: string; pid: number | string; }) => (
                 <Card key={plant.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-start space-x-4">
