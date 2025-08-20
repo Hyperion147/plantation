@@ -69,17 +69,17 @@ export default function SearchPage() {
               <div>
                 <h4 className="font-semibold mb-2">Plant Names</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Search by common names: "Monstera", "Fiddle Leaf"</li>
-                  <li>• Search by scientific names: "Deliciosa", "Lyrata"</li>
-                  <li>• Partial matches work: "mon" will find "Monstera"</li>
+                  <li>• Search by common names: &quot;Monstera&quot;, &quot;Fiddle Leaf&quot;</li>
+                  <li>• Search by scientific names: &quot;Deliciosa&quot;, &quot;Lyrata&quot;</li>
+                  <li>• Partial matches work: &quot;mon&quot; will find &quot;Monstera&quot;</li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-semibold mb-2">Descriptions</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Search care tips: "low maintenance", "drought"</li>
-                  <li>• Search characteristics: "trailing", "air purifier"</li>
-                  <li>• Search environments: "indoor", "low light"</li>
+                  <li>• Search care tips: &quot;low maintenance&quot;, &quot;drought&quot;</li>
+                  <li>• Search characteristics: &quot;trailing&quot;, &quot;air purifier&quot;</li>
+                  <li>• Search environments: &quot;indoor&quot;, &quot;low light&quot;</li>
                 </ul>
               </div>
               <div>

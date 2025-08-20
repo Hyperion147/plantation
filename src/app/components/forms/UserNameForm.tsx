@@ -10,6 +10,13 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 
+// Define proper types for user metadata
+interface UserMetadata {
+  name?: string;
+  avatar_url?: string;
+  [key: string]: unknown; // Allow for other properties
+}
+
 const formSchema = z.object({
   display_name: z.string().min(2, {
     message: 'Name must be at least 2 characters.',
@@ -24,10 +31,14 @@ export default function UserNameForm({ onSuccess }: UserNameFormProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Safely get user metadata with proper typing
+  const userMetadata = user?.user_metadata as UserMetadata | undefined;
+  const initialName = userMetadata?.name || '';
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      display_name: (user?.user_metadata as any)?.name || '',
+      display_name: initialName,
     },
   });
 
@@ -48,7 +59,7 @@ export default function UserNameForm({ onSuccess }: UserNameFormProps) {
         credentials: 'include',
         body: JSON.stringify({
           name: values.display_name,
-          avatar_url: (user.user_metadata as any)?.avatar_url ?? null,
+          avatar_url: userMetadata?.avatar_url ?? null,
         }),
       });
 

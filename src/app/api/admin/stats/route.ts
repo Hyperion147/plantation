@@ -30,7 +30,7 @@ export async function GET() {
     }
 
     let total_plants = 0;
-    let total_users = new Set();
+    const total_users = new Set();
     let recent_plants = 0;
     const now = Date.now();
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;

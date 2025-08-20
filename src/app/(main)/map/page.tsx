@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plant } from '@/lib/types';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { MapPin, Users, Leaf, Map } from 'lucide-react';
+import { MapPin, Leaf, Map } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
 const PlantMap = dynamic(() => import('@/app/components/map/PlantMap'), {

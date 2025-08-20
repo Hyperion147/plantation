@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -14,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Medal, Award } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 
 interface LeaderboardUser {
   user_id: string;
@@ -93,7 +92,7 @@ export default function LeaderboardPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5" />
-            Top 50 Plant Trackers
+            Top Plant Trackers
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">

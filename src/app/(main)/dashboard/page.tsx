@@ -94,7 +94,7 @@ export default function DashboardPage() {
       
       {showNameForm && (
         <UserNameForm 
-          onSuccess={(name) => {
+          onSuccess={() => {
             setShowNameForm(false);
             refetchUser();
           }} 
@@ -242,7 +242,7 @@ export default function DashboardPage() {
                 </div>
                 <h3 className="font-semibold mb-2">No Plants Yet</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  You haven't tracked any plants yet. Start by adding your first plant!
+                  You haven&apos;t tracked any plants yet. Start by adding your first plant!
                 </p>
                 <Button onClick={() => setShowPlantForm(true)}>
                   <Plus className="h-4 w-4 mr-2" />

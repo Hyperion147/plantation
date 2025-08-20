@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { CookieOptions } from '@supabase/ssr'
 
 export async function getSupabaseServerClient() {
 	const cookieStore = await cookies()
@@ -11,10 +12,10 @@ export async function getSupabaseServerClient() {
 			get(name: string) {
 				return cookieStore.get(name)?.value
 			},
-			set(name: string, value: string, options: any) {
+			set(name: string, value: string, options: CookieOptions) {
 				cookieStore.set({ name, value, ...options })
 			},
-			remove(name: string, options: any) {
+			remove(name: string, options: CookieOptions) {
 				cookieStore.set({ name, value: '', ...options })
 			},
 		},

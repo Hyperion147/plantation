@@ -17,12 +17,23 @@ import Link from 'next/link';
 import { LogOut, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+// Define proper type for user metadata
+interface UserMetadata {
+  name?: string;
+  avatar_url?: string;
+  [key: string]: unknown; // Allow for other properties
+}
+
 export default function Navigation() {
   const { user } = useAuth();
   const router = useRouter();
 
+  // Safely get user metadata with proper typing
+  const userMetadata = user?.user_metadata as UserMetadata | undefined;
+  const userName = userMetadata?.name || user?.email || 'Guest';
+
   const handleSignOut = async () => {
-    const id = toast((t) => (
+    toast((t) => (
       <div className="space-y-3">
         <p className="text-sm">Are you sure you want to log out?</p>
         <div className="flex gap-2 justify-center">
@@ -90,9 +101,9 @@ export default function Navigation() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-8 w-8 rounded-full">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.user_metadata?.avatar_url} alt={(user?.user_metadata as any)?.name || user?.email || 'Guest'} />
+              <AvatarImage src={userMetadata?.avatar_url} alt={userName} />
               <AvatarFallback>
-                {user ? (user.user_metadata?.name?.charAt(0) || user.email?.charAt(0)) : <User className="h-4 w-4" />}
+                {user ? (userMetadata?.name?.charAt(0) || user.email?.charAt(0)) : <User className="h-4 w-4" />}
               </AvatarFallback>
             </Avatar>
           </Button>
@@ -101,7 +112,7 @@ export default function Navigation() {
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium leading-none">
-                {user?.user_metadata?.name || user?.email || 'Guest'}
+                {userName}
               </p>
               <p className="text-xs leading-none text-muted-foreground">
                 {user ? user.email : 'Not signed in'}

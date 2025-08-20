@@ -142,8 +142,6 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
         throw new Error(details || 'Failed to create plant');
       }
 
-      const plant = await response.json();
-
       toast.success('Plant tracked successfully!', {
         description: `${values.name} has been added to your Panipat collection`,
       });
@@ -206,7 +204,7 @@ export default function PlantForm({ userId, userName }: PlantFormProps) {
             <FormField
               control={form.control}
               name="image"
-              render={({ field }) => (
+              render={() => (
                 <FormItem>
                   <FormLabel>Plant Image *</FormLabel>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

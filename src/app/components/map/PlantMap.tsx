@@ -14,14 +14,15 @@ const PANIPAT_BOUNDS = {
 };
 
 // Fix default icon issues in Leaflet when using bundlers
-const DefaultIcon = L.icon({
+const DefaultIcon: L.Icon = L.icon({
     iconUrl: '/marker.png',
     iconRetinaUrl: "/marker.png",
     shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
     iconSize: [25, 41],
     iconAnchor: [12, 41],
 });
-L.Marker.prototype.options.icon = DefaultIcon as any;
+
+L.Marker.prototype.options.icon = DefaultIcon;
 
 interface Plant {
     id: string | number;

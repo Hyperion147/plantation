@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, QueryResult } from 'pg';
 
 const pool = new Pool({
   user: process.env.DB_USER || 'postgres',
@@ -21,4 +21,15 @@ pool.on('error', (err) => {
 
 export { pool };
 
-export const query = (text: string, params?: any[]) => pool.query(text, params);
+// // Define a generic query function with proper typing
+// export const query = <T = any>(text: string, params?: unknown[]): Promise<QueryResult<T>> => {
+//   return pool.query<T>(text, params);
+// };
+
+// Alternatively, if you want to be more specific about the row type:
+export const query = <T extends Record<string, unknown> = Record<string, unknown>>(
+  text: string, 
+  params?: unknown[]
+): Promise<QueryResult<T>> => {
+  return pool.query<T>(text, params);
+};
