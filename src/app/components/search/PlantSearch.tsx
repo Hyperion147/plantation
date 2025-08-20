@@ -137,7 +137,7 @@ export default function PlantSearch() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Found {searchResults.length} plant{searchResults.length !== 1 ? 's' : ''} for "{debouncedSearchTerm}"
+              Found {searchResults.length} plant{searchResults.length !== 1 ? 's' : ''} for &quot;{debouncedSearchTerm}&quot;
             </p>
             <Link href="/map">
               <Button variant="outline" size="sm">
@@ -215,7 +215,7 @@ export default function PlantSearch() {
             </div>
             <h3 className="font-semibold mb-2">No plants found</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              No plants found for "{debouncedSearchTerm}". Try searching with different keywords.
+              No plants found for &quot;{debouncedSearchTerm}&quot;. Try searching with different keywords.
             </p>
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">Try searching for:</p>

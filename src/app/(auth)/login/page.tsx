@@ -63,7 +63,7 @@ export default function LoginPage() {
 
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Don't have an account? No problem!
+                  Don&apos;t have an account? No problem!
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Sign in with Google to automatically create your account
@@ -74,7 +74,7 @@ export default function LoginPage() {
             {/* Features Preview */}
             <div className="pt-6 border-t">
               <h3 className="font-semibold text-sm mb-3 text-gray-900">
-                What you'll get:
+                What you&apos;ll get:
               </h3>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">

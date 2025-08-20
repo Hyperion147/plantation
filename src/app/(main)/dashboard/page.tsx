@@ -7,7 +7,7 @@ import PlantForm from '@/app/components/forms/PlantForm';
 import UserNameForm from '@/app/components/forms/UserNameForm';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/app/components/ui/skeleton';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Leaf, Calendar, User } from 'lucide-react';
 import Link from 'next/link';
@@ -190,7 +190,7 @@ export default function DashboardPage() {
             </div>
           ) : userPlants && userPlants.length > 0 ? (
             <div className="space-y-4">
-              {userPlants.slice(0, 5).map((plant: any) => (
+              {userPlants.slice(0, 5).map((plant: { id: string; image_url?: string; name: string; description?: string; created_at: string; }) => (
                 <Card key={plant.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-start space-x-4">
