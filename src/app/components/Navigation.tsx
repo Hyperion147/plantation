@@ -17,6 +17,11 @@ import Link from 'next/link';
 import { LogOut, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+import { IoHome } from "react-icons/io5";
+import { MdDashboard } from "react-icons/md";
+import { FaMapLocationDot } from "react-icons/fa6";
+import { MdLeaderboard } from "react-icons/md";
+
 // Define proper type for user metadata
 interface UserMetadata {
   name?: string;
@@ -120,10 +125,10 @@ export default function Navigation() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push('/')}>Home</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push('/dashboard')}>Dashboard</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push('/map')}>Map</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push('/leaderboard')}>Leaderboard</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push('/')}><IoHome />Home</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push('/dashboard')}><MdDashboard />Dashboard</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push('/map')}><FaMapLocationDot />Map</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push('/leaderboard')}><MdLeaderboard />Leaderboard</DropdownMenuItem>
           <DropdownMenuSeparator />
           {user ? (
             <DropdownMenuItem onClick={handleSignOut}>
